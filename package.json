@@ -1,0 +1,29 @@
+{
+  "name": "cse-110-project-team-31",
+  "version": "1.0.0",
+  "description": "Fresh repository with main branch.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CSE110-Coblenz/cse-110-project-team-31.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CSE110-Coblenz/cse-110-project-team-31/issues"
+  },
+  "homepage": "https://github.com/CSE110-Coblenz/cse-110-project-team-31#readme",
+  "dependencies": {
+    "konva": "^10.0.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^7.1.12"
+  }
+}
