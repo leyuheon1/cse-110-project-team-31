@@ -1,2 +1,2 @@
-# Lab2
+# Cookie Trailer Tykoon
 Fresh repository with main branch.
