@@ -31,3 +31,9 @@ export interface GameConfig {
     divisionProblems: number;
     multiplicationProblems: number;
 }
+
+export interface MinigameResult {
+    correctAnswers: number;
+    totalProblems: number;
+    timeRemaining: number;
+}

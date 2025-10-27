@@ -1,6 +1,7 @@
 import Konva from 'konva';
-import { GamePhase, PlayerState } from './types';
+import { GamePhase, PlayerState, MinigameResult } from './types';
 import { ConfigManager } from './config';
+import { BakingMinigame } from './BakingMinigame';
 
 export class GameManager {
     private stage: Konva.Stage;
@@ -8,6 +9,7 @@ export class GameManager {
     private currentPhase: GamePhase;
     private player: PlayerState;
     private config = ConfigManager.getInstance().getConfig();
+    private currentMinigame: BakingMinigame | null = null;
 
     constructor(container: HTMLDivElement) {
         this.stage = new Konva.Stage({
@@ -105,37 +107,50 @@ export class GameManager {
         this.layer.add(buyButton.group);
     }
 
-    private renderBakingPhase(): void {
-        const title = new Konva.Text({
-            x: 50,
-            y: 50,
-            text: 'Baking Phase - Division Problems',
-            fontSize: 30,
-            fill: 'black'
-        });
-        this.layer.add(title);
+    private onBakingComplete(result: MinigameResult): void {
+        // Clean up minigame
+        if (this.currentMinigame) {
+            this.currentMinigame.cleanup();
+            this.currentMinigame = null;
+        }
 
-        const info = new Konva.Text({
-            x: 50,
-            y: 100,
-            text: 'Solve division problems!\n(Placeholder - will implement minigame)',
-            fontSize: 20,
-            fill: 'black'
-        });
-        this.layer.add(info);
+        // Calculate bread quality based on performance
+        // Perfect score (100%) = quality 100
+        // 0% = quality 30 (minimum quality)
+        const accuracy = result.totalProblems > 0 
+            ? result.correctAnswers / result.totalProblems 
+            : 0;
+        const quality = Math.floor(30 + (accuracy * 70));
 
-        // Skip to selling for now
-        const skipButton = this.createButton(50, 300, 'Finish Baking', () => {
-            // Create bread with dummy quality
+        // Calculate how many breads can be made
+        const flourNeeded = 1; // 1 flour per bread
+        const maxBreads = Math.floor(this.player.flourInventory / flourNeeded);
+        const breadsToMake = Math.min(maxBreads, this.player.maxBreadCapacity);
+
+        // Create bread with calculated quality
+        if (breadsToMake > 0) {
             this.player.breadInventory.push({
-                quality: 75,
-                quantity: Math.min(this.player.flourInventory, this.player.maxBreadCapacity)
+                quality: quality,
+                quantity: breadsToMake
             });
-            this.player.flourInventory = Math.max(0, this.player.flourInventory - this.player.maxBreadCapacity);
-            this.currentPhase = GamePhase.SELLING;
-            this.renderCurrentPhase();
-        });
-        this.layer.add(skipButton.group);
+            this.player.flourInventory -= breadsToMake * flourNeeded;
+        }
+
+        // Move to selling phase
+        this.currentPhase = GamePhase.SELLING;
+        this.renderCurrentPhase();
+    }
+
+
+    private renderBakingPhase(): void {
+        this.layer.destroyChildren();
+
+        // Start the baking minigame
+        this.currentMinigame = new BakingMinigame(
+            this.stage,
+            this.layer,
+            (result) => this.onBakingComplete(result)
+        );
     }
 
     private renderSellingPhase(): void {
