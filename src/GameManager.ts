@@ -15,8 +15,8 @@ export class GameManager {
     constructor(container: HTMLDivElement) {
         this.stage = new Konva.Stage({
             container: container,
-            width: 1600,
-            height: 1000
+            width: container.offsetWidth,
+            height: container.offsetHeight
         });
 
         this.layer = new Konva.Layer();
@@ -60,9 +60,12 @@ export class GameManager {
 
     private renderShoppingPhase(): void {
         // Title
+        const stageWidth = this.stage.width();
+        const stageHeight = this.stage.height();
+
         const title = new Konva.Text({
-            x: 50,
-            y: 50,
+            x: stageWidth * 0.05,
+            y: stageHeight * 0.05,
             text: `Day ${this.player.currentDay} - Shopping Phase`,
             fontSize: 30,
             fill: 'black'
@@ -71,8 +74,8 @@ export class GameManager {
 
         // Player info
         const info = new Konva.Text({
-            x: 50,
-            y: 100,
+            x: stageWidth * 0.05,
+            y: stageHeight * 0.12,
             text: `Funds: $${this.player.funds.toFixed(2)}\nFlour: ${this.player.flourInventory} units\nBread Capacity: ${this.player.maxBreadCapacity} loaves`,
             fontSize: 20,
             fill: 'black'

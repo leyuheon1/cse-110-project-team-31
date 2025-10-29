@@ -1,5 +1,39 @@
 # Cookie Trailer Tykoon
 
+
+
+
+# Oct 28, 2025
+
+## How to run
+
+npm run dev
+
+## Bug Fixes
+
+
+## Feature addition
+
+
+## Feature improvement
+
+- Made everything responsive so that it works across display size (interoperability)
+
+
+## What needs improvement
+
+- Need to deal with really small display situation 
+
+
+## Backlog 
+
+### As a developer, I want to 
+
+
+
+
+
+# Oct 26, 2025
 ## Yuheon Joh - Rough sketch
 
 Ingredients for the game will be managed by ingredients.txt so that you don't have to change the code everytime
@@ -35,6 +69,8 @@ and the game will end.
 ### What I did
 
 - Barebone structure of the game
+- Basic game loop (shopping → baking → selling → cleaning)
+- Config loading system (debug_mode.txt)
 
 
 ### What I haven't done yet
