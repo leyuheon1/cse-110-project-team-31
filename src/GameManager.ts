@@ -179,8 +179,12 @@ export class GameManager {
 
     private renderBakingPhase(): void {
         this.layer.destroyChildren();
+        
+        // Add background back
+        if (this.backgroundImage) {
+            this.layer.add(this.backgroundImage);
+        }
 
-        // Start the baking minigame
         this.currentMinigame = new BakingMinigame(
             this.stage,
             this.layer,

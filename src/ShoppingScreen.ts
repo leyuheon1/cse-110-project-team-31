@@ -12,6 +12,11 @@ export class ShoppingScreen {
     private onPurchaseComplete: (purchases: Map<string, number>, totalCost: number) => void;
     private currentFunds: number;
     private currentDay: number;
+
+    private focusedInput: string | null = null;
+    private focusedInputBox: Konva.Rect | null = null;
+    private cursor: Konva.Rect | null = null;
+    private cursorInterval: number | null = null;
     
     private ingredients: IngredientItem[] = [
         { name: 'Flour', price: 1, inputValue: '0' },
@@ -128,15 +133,63 @@ export class ShoppingScreen {
 
         // Make clickable to focus
         inputBox.on('click', () => {
-            this.focusInput(ingredient.name);
+            this.focusInput(ingredient.name, inputBox, inputText);
+        });
+
+            // Also make text clickable
+        inputText.on('click', () => {
+            this.focusInput(ingredient.name, inputBox, inputText);
         });
     }
 
-    private focusedInput: string | null = null;
+    
 
-    private focusInput(ingredientName: string): void {
+    private focusInput(ingredientName: string, inputBox: Konva.Rect, inputText: Konva.Text): void {
+        // Remove previous focus
+        if (this.focusedInputBox) {
+            this.focusedInputBox.stroke('#3498db');
+            this.focusedInputBox.strokeWidth(2);
+        }
+        
+        // Remove previous cursor
+        if (this.cursor) {
+            this.cursor.destroy();
+            this.cursor = null;
+        }
+        if (this.cursorInterval) {
+            clearInterval(this.cursorInterval);
+        }
+        
+        // Set new focus
         this.focusedInput = ingredientName;
-        // Could add visual indicator here (like changing border color)
+        this.focusedInputBox = inputBox;
+        
+        // Highlight the box
+        inputBox.stroke('#27ae60');
+        inputBox.strokeWidth(3);
+        
+        // Create blinking cursor
+        const textWidth = inputText.getTextWidth();
+        this.cursor = new Konva.Rect({
+            x: inputText.x() + textWidth + 2,
+            y: inputText.y(),
+            width: 2,
+            height: inputText.fontSize(),
+            fill: 'black'
+        });
+        this.layer.add(this.cursor);
+        
+        // Make it blink
+        let visible = true;
+        this.cursorInterval = window.setInterval(() => {
+            if (this.cursor) {
+                this.cursor.visible(visible);
+                visible = !visible;
+                this.layer.draw();
+            }
+        }, 500);
+        
+        this.layer.draw();
     }
 
     private setupKeyboardInput(): void {
@@ -169,6 +222,13 @@ export class ShoppingScreen {
         const inputText = this.inputTexts.get(ingredientName);
         if (ingredient && inputText) {
             inputText.text(ingredient.inputValue);
+            
+            // Update cursor position
+            if (this.cursor && this.focusedInput === ingredientName) {
+                const textWidth = inputText.getTextWidth();
+                this.cursor.x(inputText.x() + textWidth + 2);
+            }
+            
             this.layer.draw();
         }
     }
@@ -256,5 +316,9 @@ export class ShoppingScreen {
 
     public cleanup(): void {
         window.removeEventListener('keydown', this.handleKeyPress.bind(this));
+        
+        if (this.cursorInterval) {
+            clearInterval(this.cursorInterval);
+        }
     }
 }

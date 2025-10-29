@@ -61,6 +61,8 @@ npm run dev
 
 - Need some clarification from the team on Cash: $ Customer demand: buy ingredients just start screen 
 
+- There's a funny bug where when you resize the display during baking phase, the whole thing resets. 
+
 
 ## Backlog 
 
