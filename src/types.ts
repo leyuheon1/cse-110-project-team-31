@@ -5,6 +5,7 @@ export enum GamePhase {
     BAKING,
     // SELLING,
     CLEANING,
+    DAY_SUMMARY,
     GAME_OVER
 }
 

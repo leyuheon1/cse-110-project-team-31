@@ -1,27 +1,99 @@
-# Cookie Trailer Tykoon
+# Cookie Trailer Tycoon
 
+## Oct 28, 2025 - Yuheon Joh Report
 
+I have finished the following from scratch. Game logic overview indicates the logic of the game I have implemented based on the 
+game design. 
 
+### Game Logic Overview
 
-# Oct 28, 2025
+**Cookie Trailer Tycoon** is an educational bakery management game where players run a cookie business through daily cycles of purchasing ingredients, baking cookies by solving math problems, and cleaning dishes.
+
+#### Core Game Loop
+
+1. **How to Play Screen** - Introduction and instructions loaded from `howtoplay.txt`
+
+2. **Today's Orders** - Display customer orders (3 customers ordering 50-99 cookies each randomly)
+
+3. **Shopping Phase** - Purchase ingredients with current funds:
+   - Flour: $1
+   - Butter: $2
+   - Sugar: $3
+   - Chocolate Chips: $4
+   - Baking Soda: $5
+   - Players input custom quantities for each ingredient
+   - Cannot proceed if insufficient funds
+
+4. **Baking Phase** - Solve division problems to make cookies:
+   - Each correct answer = 1 cookie made
+   - Consumes 1 unit of each ingredient per cookie
+   - Time limit: configurable via debug_mode.txt
+   - Stops automatically when ingredients run out
+   - Each cookie sells for $15 (configurable configurable via debug_mode.txt)
+
+5. **Cleaning Phase** - Solve multiplication problems to clean dishes:
+   - Number of dishes = number of cookies baked
+   - Each correct answer = 1 dish cleaned
+   - Time limit: configurable (configurable configurable via debug_mode.txt)
+   - Ends early if all dishes cleaned
+   - Penalty: $10 per uncleaned dish (configurable configurable via debug_mode.txt)
+
+6. **Day Summary** - Shows financial results:
+   - Total sales
+   - Total expenses (ingredients + penalties)
+   - Profit/Loss
+   - Remaining funds
+
+7. **Win/Loss Conditions**:
+   - Victory: Reach $5000+ (configurable configurable via debug_mode.txt)
+   - Defeat: Funds reach $0 (configurable configurable via debug_mode.txt)
+---
+
+### Technical Architecture
+
+#### File Structure
+
+- `GameManager.ts` - Main game controller, phase management
+- `HowToPlayScreen.ts` - Tutorial screen
+- `OrderScreen.ts` - Daily order display
+- `ShoppingScreen.ts` - Ingredient purchasing with input system
+- `BakingMinigame.ts` - Division problem minigame
+- `CleaningMinigame.ts` - Multiplication problem minigame
+- `DaySummaryScreen.ts` - End-of-day financial summary
+- `config.ts` - Configuration manager (loads from `debug_mode.txt`)
+- `types.ts` - TypeScript interfaces and enums
+- `debug_mode.txt` - Makes it easy for team members to configure the game setting.
+
+#### Key Features
+
+- Fully responsive UI that scales with browser window
+- Background image system with transparency
+- Keyboard input handling with visual cursor feedback
+- Async configuration loading from text files
+- Real-time ingredient tracking and consumption
+- Financial tracking (sales, expenses, profit)
+
+---
+
+### Configuration
+
+All game parameters are configurable via `debug_mode.txt`:
 
 
 ## How to install from git
 
 git clone 
+<br>
 npm install konva
+<br>
 npm install --save-dev typescript vite
-
+<br>
 (needed cause node_modules is not uploaded to git)
 
 ## How to run
 
 npm run dev
 
-## Notice
-
-- Cookie recipe is currently set to 1 for every ingredients (needs 1 unit of all ingredients)
-- Ingredients needed for cookie is flour, butter, sugar, chocolate chip, baking soda as we have discussed
 
 ## Bug Fixes
 

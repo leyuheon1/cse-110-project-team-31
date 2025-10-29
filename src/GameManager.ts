@@ -6,6 +6,7 @@ import { CleaningMinigame } from './CleaningMinigame';
 import { HowToPlayScreen } from './HowToPlayScreen';
 import { OrderScreen } from './OrderScreen';
 import { ShoppingScreen } from './ShoppingScreen';
+import { DaySummaryScreen } from './DaySummaryScreen';
 
 export class GameManager {
     private stage: Konva.Stage;
@@ -16,6 +17,8 @@ export class GameManager {
     private currentMinigame: BakingMinigame | null = null;
     private currentCleaningMinigame: CleaningMinigame | null = null; 
     private backgroundImage: Konva.Image | null = null;
+    private daySales: number = 0;
+    private dayExpenses: number = 0;
 
     constructor(container: HTMLDivElement) {
         this.stage = new Konva.Stage({
@@ -112,6 +115,9 @@ export class GameManager {
             case GamePhase.CLEANING:
                 this.renderCleaningPhase();
                 break;
+            case GamePhase.DAY_SUMMARY:
+                this.renderDaySummaryPhase();
+                break;
             case GamePhase.GAME_OVER:
                 this.renderGameOverPhase();
                 break;
@@ -121,6 +127,10 @@ export class GameManager {
     }
 
     private renderShoppingPhase(): void {
+        // Reset daily tracking
+        this.daySales = 0;
+        this.dayExpenses = 0;
+        
         new ShoppingScreen(
             this.stage,
             this.layer,
@@ -128,13 +138,13 @@ export class GameManager {
             this.player.currentDay,
             (purchases, totalCost) => {
                 this.player.funds -= totalCost;
+                this.dayExpenses += totalCost;  // Track expenses
                 
                 purchases.forEach((qty, name) => {
                     const current = this.player.ingredients.get(name) || 0;
                     this.player.ingredients.set(name, current + qty);
                 });
                 
-                // Check if can bake, otherwise skip to cleaning
                 if (this.canMakeCookies()) {
                     this.currentPhase = GamePhase.BAKING;
                 } else {
@@ -152,17 +162,13 @@ export class GameManager {
             this.currentMinigame = null;
         }
 
-        // Cookies already made and ingredients consumed during baking
         const cookiesMade = result.correctAnswers;
-        
-        // Sell cookies automatically
         const revenue = cookiesMade * this.config.cookiePrice;
+        
         this.player.funds += revenue;
+        this.daySales += revenue;  // Track sales
+        this.player.dishesToClean = cookiesMade;
         
-        // Store cookies made for cleaning phase
-        this.player.dishesToClean = cookiesMade;  // Add this line
-        
-        // Move to cleaning phase
         this.currentPhase = GamePhase.CLEANING;
         this.renderCurrentPhase();
     }
@@ -219,25 +225,39 @@ export class GameManager {
 
         const dishesNotCleaned = this.player.dishesToClean - result.correctAnswers;
         
-        // Apply $10 penalty per uncleaned dish
         if (dishesNotCleaned > 0) {
             const penalty = dishesNotCleaned * 10;
             this.player.funds -= penalty;
-            alert(`${dishesNotCleaned} dishes not cleaned! Penalty: -$${penalty}`);
+            this.dayExpenses += penalty;  // Track penalty as expense
         }
 
         this.player.currentDay++;
         
-        // Check win/loss
-        if (this.player.funds >= this.config.winThreshold) {
-            this.currentPhase = GamePhase.GAME_OVER;
-        } else if (this.player.funds <= this.config.bankruptcyThreshold) {
-            this.currentPhase = GamePhase.GAME_OVER;
-        } else {
-            this.currentPhase = GamePhase.ORDER;  // Back to orders for next day
-        }
-        
+        // Go to day summary instead of checking win/loss
+        this.currentPhase = GamePhase.DAY_SUMMARY;
         this.renderCurrentPhase();
+    }
+
+        private renderDaySummaryPhase(): void {
+        new DaySummaryScreen(
+            this.stage,
+            this.layer,
+            this.player.currentDay - 1,  // Show the day that just ended
+            this.daySales,
+            this.dayExpenses,
+            this.player.funds,
+            () => {
+                // Check win/loss after summary
+                if (this.player.funds >= this.config.winThreshold) {
+                    this.currentPhase = GamePhase.GAME_OVER;
+                } else if (this.player.funds <= this.config.bankruptcyThreshold) {
+                    this.currentPhase = GamePhase.GAME_OVER;
+                } else {
+                    this.currentPhase = GamePhase.ORDER;  // Next day
+                }
+                this.renderCurrentPhase();
+            }
+        );
     }
 
 
