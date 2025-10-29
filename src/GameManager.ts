@@ -107,9 +107,6 @@ export class GameManager {
             case GamePhase.BAKING:
                 this.renderBakingPhase();
                 break;
-            case GamePhase.SELLING:
-                this.renderSellingPhase();
-                break;
             case GamePhase.CLEANING:
                 this.renderCleaningPhase();
                 break;
@@ -130,50 +127,51 @@ export class GameManager {
             (purchases, totalCost) => {
                 this.player.funds -= totalCost;
                 
-                // Add purchased ingredients to inventory
                 purchases.forEach((qty, name) => {
                     const current = this.player.ingredients.get(name) || 0;
                     this.player.ingredients.set(name, current + qty);
                 });
                 
-                this.currentPhase = GamePhase.BAKING;
+                // Check if can bake, otherwise skip to cleaning
+                if (this.canMakeCookies()) {
+                    this.currentPhase = GamePhase.BAKING;
+                } else {
+                    alert('Not enough ingredients to bake!');
+                    this.currentPhase = GamePhase.CLEANING;
+                }
                 this.renderCurrentPhase();
             }
         );
     }
 
     private onBakingComplete(result: MinigameResult): void {
-        // Clean up minigame
         if (this.currentMinigame) {
             this.currentMinigame.cleanup();
             this.currentMinigame = null;
         }
 
-        // Calculate bread quality based on performance
-        // Perfect score (100%) = quality 100
-        // 0% = quality 30 (minimum quality)
-        const accuracy = result.totalProblems > 0 
-            ? result.correctAnswers / result.totalProblems 
-            : 0;
-        const quality = Math.floor(30 + (accuracy * 70));
-
-        // Calculate how many breads can be made
-        const flourNeeded = 1; // 1 flour per bread
-        const maxBreads = Math.floor(this.player.flourInventory / flourNeeded);
-        const breadsToMake = Math.min(maxBreads, this.player.maxBreadCapacity);
-
-        // Create bread with calculated quality
-        if (breadsToMake > 0) {
-            this.player.breadInventory.push({
-                quality: quality,
-                quantity: breadsToMake
-            });
-            this.player.flourInventory -= breadsToMake * flourNeeded;
-        }
-
-        // Move to selling phase
-        this.currentPhase = GamePhase.SELLING;
+        // Each correct answer = 1 cookie made
+        const cookiesMade = result.correctAnswers;
+        
+        // Deduct ingredients (1 of each per cookie)
+        const ingredientNames = ['Flour', 'Butter', 'Sugar', 'Chocolate Chips', 'Baking Soda'];
+        ingredientNames.forEach(name => {
+            const current = this.player.ingredients.get(name) || 0;
+            this.player.ingredients.set(name, Math.max(0, current - cookiesMade));
+        });
+        
+        // Sell cookies automatically
+        const revenue = cookiesMade * this.config.cookiePrice;
+        this.player.funds += revenue;
+        
+        // Move to cleaning phase
+        this.currentPhase = GamePhase.CLEANING;
         this.renderCurrentPhase();
+    }
+
+        private canMakeCookies(): boolean {
+        const ingredientNames = ['Flour', 'Butter', 'Sugar', 'Chocolate Chips', 'Baking Soda'];
+        return ingredientNames.every(name => (this.player.ingredients.get(name) || 0) > 0);
     }
 
 
@@ -192,39 +190,7 @@ export class GameManager {
         );
     }
 
-    private renderSellingPhase(): void {
-        const title = new Konva.Text({
-            x: 50,
-            y: 50,
-            text: 'Selling Phase',
-            fontSize: 30,
-            fill: 'black'
-        });
-        this.layer.add(title);
 
-        const totalBread = this.player.breadInventory.reduce((sum, b) => sum + b.quantity, 0);
-        const avgQuality = this.player.breadInventory.reduce((sum, b) => sum + b.quality * b.quantity, 0) / totalBread;
-
-        const info = new Konva.Text({
-            x: 50,
-            y: 100,
-            text: `Bread: ${totalBread} loaves\nAvg Quality: ${avgQuality.toFixed(1)}`,
-            fontSize: 20,
-            fill: 'black'
-        });
-        this.layer.add(info);
-
-        // Sell button
-        const sellButton = this.createButton(50, 300, 'Sell All Bread', () => {
-            const pricePerLoaf = 5 + (avgQuality / 10); // Quality affects price
-            const revenue = totalBread * pricePerLoaf;
-            this.player.funds += revenue;
-            this.player.breadInventory = [];
-            this.currentPhase = GamePhase.CLEANING;
-            this.renderCurrentPhase();
-        });
-        this.layer.add(sellButton.group);
-    }
 
 
         private onCleaningComplete(result: MinigameResult): void {

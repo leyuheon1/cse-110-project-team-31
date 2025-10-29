@@ -182,7 +182,7 @@ export class BakingMinigame {
 
         if (userAnswer === this.currentProblem.answer) {
             this.correctAnswers++;
-            this.showFeedback('Correct! ✓', '#27ae60');
+            this.showFeedback('Cookie Made! ✓', '#27ae60');
         } else {
             this.showFeedback('Wrong! ✗', '#e74c3c');
         }
@@ -191,7 +191,6 @@ export class BakingMinigame {
         this.userInput = '';
         this.updateInputDisplay();
         
-        // Generate new problem after short delay
         setTimeout(() => {
             this.feedbackText.text('');
             this.generateNewProblem();
@@ -206,7 +205,7 @@ export class BakingMinigame {
     }
 
     private updateScore(): void {
-        this.scoreText.text(`Correct: ${this.correctAnswers} / ${this.totalProblems}`);
+        this.scoreText.text(`Cookies Made: ${this.correctAnswers}`);
         this.layer.draw();
     }
 

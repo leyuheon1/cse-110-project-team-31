@@ -3,7 +3,7 @@ export enum GamePhase {
     ORDER, 
     SHOPPING,
     BAKING,
-    SELLING,
+    // SELLING,
     CLEANING,
     GAME_OVER
 }
@@ -37,6 +37,7 @@ export interface GameConfig {
     maxBreadCapacity: number;
     divisionProblems: number;
     multiplicationProblems: number;
+    cookiePrice: number;
 }
 
 export interface MinigameResult {

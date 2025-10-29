@@ -16,7 +16,8 @@ export class ConfigManager {
             cleaningTime: 45,
             maxBreadCapacity: 20,
             divisionProblems: 10,
-            multiplicationProblems: 8
+            multiplicationProblems: 8,
+            cookiePrice: 15
         };
     }
 
@@ -83,6 +84,9 @@ export class ConfigManager {
                 break;
             case 'MULTIPLICATION_PROBLEMS':
                 this.config.multiplicationProblems = numValue;
+                break;
+            case 'COOKIE_PRICE':
+                this.config.cookiePrice = numValue;
                 break;
         }
     }
