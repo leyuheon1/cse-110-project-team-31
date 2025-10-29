@@ -36,102 +36,105 @@ export class BakingMinigame {
     }
 
     private setupUI(): void {
-        // Title
-        const title = new Konva.Text({
-            x: 50,
-            y: 30,
-            text: 'Baking Minigame - Solve Division Problems!',
-            fontSize: 28,
-            fill: '#2c3e50',
-            fontStyle: 'bold'
-        });
-        this.layer.add(title);
+    const stageWidth = this.stage.width();
+    const stageHeight = this.stage.height();
 
-        // Timer
-        this.timerText = new Konva.Text({
-            x: 600,
-            y: 30,
-            text: `Time: ${this.timeRemaining}s`,
-            fontSize: 24,
-            fill: '#27ae60',
-            fontStyle: 'bold'
-        });
-        this.layer.add(this.timerText);
+    // Title
+    const title = new Konva.Text({
+        x: stageWidth * 0.05,
+        y: stageHeight * 0.05,
+        text: 'Baking Minigame - Solve Division Problems!',
+        fontSize: Math.min(stageWidth * 0.028, 34),
+        fill: '#2c3e50',
+        fontStyle: 'bold'
+    });
+    this.layer.add(title);
 
-        // Score
-        this.scoreText = new Konva.Text({
-            x: 50,
-            y: 80,
-            text: `Correct: ${this.correctAnswers} / ${this.totalProblems}`,
-            fontSize: 20,
-            fill: '#34495e'
-        });
-        this.layer.add(this.scoreText);
+    // Timer (right side)
+    this.timerText = new Konva.Text({
+        x: stageWidth * 0.75,  // Changed to right side
+        y: stageHeight * 0.05,
+        text: `Time: ${this.timeRemaining}s`,
+        fontSize: Math.min(stageWidth * 0.024, 28),
+        fill: '#27ae60',
+        fontStyle: 'bold'
+    });
+    this.layer.add(this.timerText);
 
-        // Problem display
-        this.problemText = new Konva.Text({
-            x: 300,
-            y: 200,
-            text: '',
-            fontSize: 48,
-            fill: '#2c3e50',
-            fontStyle: 'bold',
-            align: 'center',
-            width: 200
-        });
-        this.layer.add(this.problemText);
+    // Score
+    this.scoreText = new Konva.Text({
+        x: stageWidth * 0.05,
+        y: stageHeight * 0.12,
+        text: `Cookies Made: ${this.correctAnswers}`,
+        fontSize: Math.min(stageWidth * 0.02, 24),
+        fill: '#34495e'
+    });
+    this.layer.add(this.scoreText);
 
-        // Input box background
-        const inputBox = new Konva.Rect({
-            x: 250,
-            y: 300,
-            width: 300,
-            height: 60,
-            fill: '#ecf0f1',
-            stroke: '#3498db',
-            strokeWidth: 3,
-            cornerRadius: 5
-        });
-        this.layer.add(inputBox);
+    // Problem display
+    this.problemText = new Konva.Text({
+        x: stageWidth * 0.4,
+        y: stageHeight * 0.3,
+        text: '',
+        fontSize: Math.min(stageWidth * 0.048, 58),
+        fill: '#2c3e50',
+        fontStyle: 'bold',
+        align: 'center',
+        width: stageWidth * 0.2
+    });
+    this.layer.add(this.problemText);
 
-        // Input text
-        this.inputText = new Konva.Text({
-            x: 260,
-            y: 315,
-            text: '',
-            fontSize: 36,
-            fill: '#2c3e50',
-            width: 280,
-            align: 'center'
-        });
-        this.layer.add(this.inputText);
+    // Input box
+    const inputBox = new Konva.Rect({
+        x: stageWidth * 0.35,
+        y: stageHeight * 0.45,
+        width: stageWidth * 0.3,
+        height: stageHeight * 0.08,
+        fill: '#ecf0f1',
+        stroke: '#3498db',
+        strokeWidth: 3,
+        cornerRadius: 5
+    });
+    this.layer.add(inputBox);
 
-        // Feedback text (shows "Correct!" or "Wrong!")
-        this.feedbackText = new Konva.Text({
-            x: 300,
-            y: 400,
-            text: '',
-            fontSize: 28,
-            fill: '#27ae60',
-            align: 'center',
-            width: 200
-        });
-        this.layer.add(this.feedbackText);
+    // Input text
+    this.inputText = new Konva.Text({
+        x: stageWidth * 0.36,
+        y: stageHeight * 0.47,
+        text: '',
+        fontSize: Math.min(stageWidth * 0.036, 44),
+        fill: '#2c3e50',
+        width: stageWidth * 0.28,
+        align: 'center'
+    });
+    this.layer.add(this.inputText);
 
-        // Instructions
-        const instructions = new Konva.Text({
-            x: 200,
-            y: 500,
-            text: 'Type your answer and press ENTER',
-            fontSize: 18,
-            fill: '#7f8c8d',
-            align: 'center',
-            width: 400
-        });
-        this.layer.add(instructions);
+    // Feedback
+    this.feedbackText = new Konva.Text({
+        x: stageWidth * 0.4,
+        y: stageHeight * 0.58,
+        text: '',
+        fontSize: Math.min(stageWidth * 0.028, 34),
+        fill: '#27ae60',
+        align: 'center',
+        width: stageWidth * 0.2
+    });
+    this.layer.add(this.feedbackText);
 
-        this.layer.draw();
-    }
+    // Instructions
+    const instructions = new Konva.Text({
+        x: stageWidth * 0.3,
+        y: stageHeight * 0.7,
+        text: 'Type your answer and press ENTER',
+        fontSize: Math.min(stageWidth * 0.018, 22),
+        fill: '#7f8c8d',
+        align: 'center',
+        width: stageWidth * 0.4
+    });
+    this.layer.add(instructions);
+
+    this.layer.draw();
+}
 
     private generateNewProblem(): void {
         // Generate division problems that have whole number answers
