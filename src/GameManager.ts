@@ -3,6 +3,8 @@ import { GamePhase, PlayerState, MinigameResult } from './types';
 import { ConfigManager } from './config';
 import { BakingMinigame } from './BakingMinigame';
 import { CleaningMinigame } from './CleaningMinigame';
+import { HowToPlayScreen } from './HowToPlayScreen';
+import { OrderScreen } from './OrderScreen';
 
 export class GameManager {
     private stage: Konva.Stage;
@@ -23,7 +25,8 @@ export class GameManager {
         this.layer = new Konva.Layer();
         this.stage.add(this.layer);
 
-        this.currentPhase = GamePhase.SHOPPING;
+        // this.currentPhase = GamePhase.SHOPPING;
+        this.currentPhase = GamePhase.HOW_TO_PLAY;
         this.player = {
             funds: this.config.startingFunds,
             flourInventory: 0,
@@ -32,9 +35,29 @@ export class GameManager {
             currentDay: 1
         };
         
+        window.addEventListener('resize', () => {
+        this.handleResize(container);
+        });
+
         this.loadBackground();
         
     }
+
+
+        private handleResize(container: HTMLDivElement): void {
+            this.stage.width(container.offsetWidth);
+            this.stage.height(container.offsetHeight);
+            
+            // Reload background with new size
+            if (this.backgroundImage) {
+                this.backgroundImage.width(this.stage.width());
+                this.backgroundImage.height(this.stage.height());
+            }
+            
+            // Re-render current phase
+            this.renderCurrentPhase();
+        }
+
 
         private loadBackground(): void {
             // function for loading background 
@@ -65,6 +88,18 @@ export class GameManager {
         }
 
         switch (this.currentPhase) {
+            case GamePhase.HOW_TO_PLAY:  
+            new HowToPlayScreen(this.stage, this.layer, () => {
+                this.currentPhase = GamePhase.ORDER;
+                this.renderCurrentPhase();
+            });
+            break;
+            case GamePhase.ORDER:
+            new OrderScreen(this.stage, this.layer, this.player.currentDay, () => {
+                this.currentPhase = GamePhase.SHOPPING;
+                this.renderCurrentPhase();
+            });
+            break;
             case GamePhase.SHOPPING:
                 this.renderShoppingPhase();
                 break;

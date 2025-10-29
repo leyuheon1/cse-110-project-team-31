@@ -1,0 +1,156 @@
+import Konva from 'konva';
+
+export class HowToPlayScreen {
+    private layer: Konva.Layer;
+    private stage: Konva.Stage;
+    private onStartGame: () => void;
+
+    constructor(stage: Konva.Stage, layer: Konva.Layer, onStartGame: () => void) {
+        this.stage = stage;
+        this.layer = layer;
+        this.onStartGame = onStartGame;
+        this.setupUI();
+    }
+
+    private setupUI(): void {
+        const stageWidth = this.stage.width();
+        const stageHeight = this.stage.height();
+
+        // Modal box (responsive)
+        const modal = new Konva.Rect({
+            x: stageWidth * 0.1,
+            y: stageHeight * 0.1,
+            width: stageWidth * 0.8,
+            height: stageHeight * 0.7,
+            fill: '#F5F5DC',
+            stroke: '#FFD700',
+            strokeWidth: 8,
+            cornerRadius: 20
+        });
+        this.layer.add(modal);
+
+        // Title (responsive)
+        const title = new Konva.Text({
+            x: stageWidth * 0.1,
+            y: stageHeight * 0.13,
+            width: stageWidth * 0.8,
+            text: 'HOW TO PLAY',
+            fontSize: Math.min(stageWidth * 0.04, 48),
+            fontStyle: 'bold',
+            fill: 'black',
+            align: 'center'
+        });
+        this.layer.add(title);
+
+        // Load instructions with proper sizing
+        this.loadInstructions(stageWidth, stageHeight);
+
+        // Start button (responsive)
+        this.createStartButton(stageWidth, stageHeight);
+
+        this.layer.draw();
+    }
+
+    private async loadInstructions(stageWidth: number, stageHeight: number): Promise<void> {
+        try {
+            const response = await fetch('/howtoplay.txt');
+            const text = await response.text();
+            
+            // Calculate text box dimensions
+            const textBoxX = stageWidth * 0.15;
+            const textBoxY = stageHeight * 0.22;
+            const textBoxWidth = stageWidth * 0.7;
+            const textBoxHeight = stageHeight * 0.45;  // Space for text before button
+            
+            // Create clipping rect so text doesn't overflow
+            const clipRect = new Konva.Rect({
+                x: textBoxX,
+                y: textBoxY,
+                width: textBoxWidth,
+                // height: textBoxHeight,
+                fill: 'transparent'
+            });
+            
+            const instructions = new Konva.Text({
+                x: textBoxX,
+                y: textBoxY,
+                width: textBoxWidth,
+                height: textBoxHeight,
+                text: text,
+                fontSize: Math.min(stageWidth * 0.015, 18),  // Responsive font size
+                fill: 'black',
+                lineHeight: 1.5,
+                wrap: 'word',
+                ellipsis: false
+            });
+            
+            this.layer.add(instructions)
+            this.layer.draw();
+        } catch (error) {
+            console.error('Could not load instructions:', error);
+            
+            // Fallback text if file doesn't load
+            const fallback = new Konva.Text({
+                x: stageWidth * 0.15,
+                y: stageHeight * 0.25,
+                width: stageWidth * 0.7,
+                text: 'Instructions could not be loaded.\n\nClick START GAME to begin!',
+                fontSize: Math.min(stageWidth * 0.02, 24),
+                fill: 'red',
+                lineHeight: 1.8,
+                align: 'center'
+            });
+            this.layer.add(fallback);
+            this.layer.draw();
+        }
+    }   
+
+    private createStartButton(stageWidth: number, stageHeight: number): void {
+        const buttonWidth = Math.min(stageWidth * 0.25, 300);
+        const buttonHeight = Math.min(stageHeight * 0.08, 60);
+        
+        const buttonGroup = new Konva.Group({
+            x: (stageWidth - buttonWidth) / 2,  // Center horizontally
+            y: stageHeight * 0.72
+        });
+
+        const rect = new Konva.Rect({
+            width: buttonWidth,
+            height: buttonHeight,
+            fill: '#4CAF50',
+            cornerRadius: 10
+        });
+
+        const text = new Konva.Text({
+            width: buttonWidth,
+            height: buttonHeight,
+            text: 'START GAME',
+            fontSize: Math.min(stageWidth * 0.022, 28),
+            fill: 'white',
+            align: 'center',
+            verticalAlign: 'middle',
+            fontStyle: 'bold'
+        });
+
+        buttonGroup.add(rect);
+        buttonGroup.add(text);
+
+        buttonGroup.on('click', this.onStartGame);
+        buttonGroup.on('mouseenter', () => {
+            this.stage.container().style.cursor = 'pointer';
+            rect.fill('#45a049');
+            this.layer.draw();
+        });
+        buttonGroup.on('mouseleave', () => {
+            this.stage.container().style.cursor = 'default';
+            rect.fill('#4CAF50');
+            this.layer.draw();
+        });
+
+        this.layer.add(buttonGroup);
+    }
+
+    public cleanup(): void {
+        // Cleanup if needed
+    }
+}

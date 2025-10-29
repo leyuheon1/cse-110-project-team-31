@@ -1,5 +1,6 @@
 export enum GamePhase {
     HOW_TO_PLAY,
+    ORDER, 
     SHOPPING,
     BAKING,
     SELLING,
