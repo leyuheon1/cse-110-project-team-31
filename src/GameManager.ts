@@ -93,7 +93,8 @@ export class GameManager {
 
         this.layer.destroyChildren(); 
 
-        if (this.backgroundImage) {
+        // Only add the default background if we are NOT on the login screen
+        if (this.backgroundImage && this.currentPhase !== GamePhase.LOGIN) {
             this.layer.add(this.backgroundImage);
         }
 
