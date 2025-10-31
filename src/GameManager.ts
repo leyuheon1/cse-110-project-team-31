@@ -236,7 +236,7 @@ export class GameManager {
             });
 
             // 2. Calculate and add base revenue
-            const baseRevenue = cookiesSold * 10; // e.g., 50 * 10 = 500
+            const baseRevenue = cookiesSold * this.config.cookiePrice; // <-- CORRECTED
             this.player.funds += baseRevenue;
             this.daySales = baseRevenue; // This is the fix
 

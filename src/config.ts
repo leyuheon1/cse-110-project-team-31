@@ -17,7 +17,7 @@ export class ConfigManager {
             maxBreadCapacity: 20,
             divisionProblems: 10,
             multiplicationProblems: 8,
-            cookiePrice: 10 // <-- THIS IS THE FIX. Set this to 10.
+            cookiePrice: 20 
         };
     }
 
