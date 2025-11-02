@@ -7,7 +7,9 @@ export enum GamePhase {
     // SELLING,
     CLEANING,
     DAY_SUMMARY,
-    GAME_OVER
+    GAME_OVER,
+    VICTORY,
+    DEFEAT
 }
 
 export interface Ingredient {

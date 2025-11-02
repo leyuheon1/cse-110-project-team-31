@@ -8,6 +8,8 @@ import { OrderScreen } from './OrderScreen';
 import { ShoppingScreen } from './ShoppingScreen';
 import { DaySummaryScreen } from './DaySummaryScreen';
 import { LoginScreen } from './LoginScreen'; 
+import { VictoryScreen } from './VictoryScreen'; 
+import { LoseScreen } from './LoseScreen';
 
 export class GameManager {
     private stage: Konva.Stage;
@@ -33,7 +35,7 @@ export class GameManager {
         this.stage.add(this.layer);
 
         // this.currentPhase = GamePhase.SHOPPING;
-        this.currentPhase = GamePhase.LOGIN;
+        this.currentPhase = GamePhase.VICTORY;
         this.player = {
             username: '', // <-- Initialize the new username property
             funds: this.config.startingFunds,
@@ -139,7 +141,7 @@ export class GameManager {
                 });
                 break;
             // --- END OF MISSING PART ---
-
+                
             case GamePhase.HOW_TO_PLAY:  
             new HowToPlayScreen(this.stage, this.layer, () => {
                 this.currentPhase = GamePhase.ORDER;
@@ -167,6 +169,13 @@ export class GameManager {
             case GamePhase.GAME_OVER:
                 this.renderGameOverPhase();
                 break;
+            case GamePhase.VICTORY:
+                this.renderVictoryPhase();
+                break;
+            case GamePhase.DEFEAT:
+                this.renderLosePhase();
+                break;
+
         }
 
         this.layer.draw();
@@ -295,9 +304,9 @@ export class GameManager {
             () => {
                 // Check win/loss after summary
                 if (this.player.funds >= this.config.winThreshold) {
-                    this.currentPhase = GamePhase.GAME_OVER;
+                    this.currentPhase = GamePhase.VICTORY;
                 } else if (this.player.funds <= this.config.bankruptcyThreshold) {
-                    this.currentPhase = GamePhase.GAME_OVER;
+                    this.currentPhase = GamePhase.DEFEAT;
                 } else {
                     this.currentPhase = GamePhase.ORDER;  // Next day
                 }
@@ -306,6 +315,55 @@ export class GameManager {
         );
     }
 
+    private renderVictoryPhase(): void {
+        const victory = new VictoryScreen(this.stage, this.layer, {
+            cashBalance: this.player.funds,
+            totalDaysPlayed: this.player.currentDay,
+            onExit: () => {
+                victory.cleanup();              // remove victory UI
+                this.resetGame();               // reset money/day/inventory (keep username)
+                this.currentPhase = GamePhase.LOGIN;
+                this.renderCurrentPhase();
+            },
+            onReturnHome: () => {
+                victory.cleanup();
+                this.resetGame();
+                this.currentPhase = GamePhase.HOW_TO_PLAY;  // or ORDER if you want
+                this.renderCurrentPhase();
+            },
+        });
+    }
+
+    private renderLosePhase(): void {
+        const lose = new LoseScreen(this.stage, this.layer, {
+            cashBalance: this.player.funds,
+            totalDaysPlayed: this.player.currentDay,
+            onExit: () => {
+                lose.cleanup();
+                this.resetGame();                 // 👈 add this
+                this.currentPhase = GamePhase.LOGIN;
+                this.renderCurrentPhase();
+            },
+            onRetry: () => {
+                lose.cleanup();
+                this.resetGame();                 // 👈 keep this
+                this.currentPhase = GamePhase.HOW_TO_PLAY;
+                this.renderCurrentPhase();
+            },
+        });
+    }
+
+    private resetGame(): void {
+        this.player = {
+            username: this.player.username,
+            funds: this.config.startingFunds,
+            ingredients: new Map<string, number>(),
+            breadInventory: [],
+            maxBreadCapacity: this.config.maxBreadCapacity,
+            currentDay: 1,
+            dishesToClean: 0,
+        };
+    }
 
     private renderCleaningPhase(): void {
         this.layer.destroyChildren();
@@ -383,4 +441,6 @@ export class GameManager {
 
         return { group, rect, label };
     }
+
+
 }
