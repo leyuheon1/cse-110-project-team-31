@@ -11,6 +11,10 @@ export class CleaningMinigame {
     private currentProblem: { question: string; answer: number };
     private correctAnswers: number = 0;
     private totalProblems: number = 0;
+
+    // --- UI Groups ---
+    private minigameUIGroup: Konva.Group;
+    private choiceUIGroup: Konva.Group;
     
     private timerText: Konva.Text;
     private problemText: Konva.Text;
@@ -20,7 +24,7 @@ export class CleaningMinigame {
     private userInput: string = '';
     
     private timerInterval: number | null = null;
-    private onComplete: (result: MinigameResult) => void;
+    private onComplete: (result: MinigameResult, skipped: boolean) => void; 
     private keyboardHandler: (e: KeyboardEvent) => void;
 
     private totalDishesToClean: number;
@@ -29,8 +33,8 @@ export class CleaningMinigame {
     constructor(
         stage: Konva.Stage, 
         layer: Konva.Layer,
-        totalDishesToClean: number,  // Add this parameter
-        onComplete: (result: MinigameResult) => void
+        totalDishesToClean: number,
+        onComplete: (result: MinigameResult, skipped: boolean) => void 
     ) {
         this.stage = stage;
         this.layer = layer;
@@ -40,25 +44,115 @@ export class CleaningMinigame {
         
         this.keyboardHandler = this.handleKeyPress.bind(this);
         
-        this.setupUI();
+        this.minigameUIGroup = new Konva.Group({ visible: false, name: 'minigameUI' });
+        this.choiceUIGroup = new Konva.Group({ visible: false, name: 'choiceUI' });
+        this.layer.add(this.minigameUIGroup);
+        this.layer.add(this.choiceUIGroup);
+
+        this.showPlaySkipChoice();
+    }
+
+    // --- MODIFIED: showPlaySkipChoice ---
+    private showPlaySkipChoice(): void {
+        this.choiceUIGroup.destroyChildren();
+        const stageWidth = this.stage.width();
+        const stageHeight = this.stage.height();
+        const stage = this.stage;
+
+        const modalWidth = stageWidth * 0.7;
+        const modalHeight = stageHeight * 0.65; // Slightly taller for more text
+        const modalX = (stageWidth - modalWidth) / 2;
+        const modalY = (stageHeight - modalHeight) / 2;
+
+        const modalBg = new Konva.Rect({
+            x: modalX, y: modalY, width: modalWidth, height: modalHeight,
+            fill: '#E0FFFF', cornerRadius: 20, stroke: '#008B8B', strokeWidth: 5,
+            shadowColor: 'black', shadowBlur: 10, shadowOpacity: 0.3, shadowOffset: {x: 3, y: 3}
+        });
+        this.choiceUIGroup.add(modalBg);
+
+        const titleText = new Konva.Text({
+            x: modalX, y: modalY + modalHeight * 0.1, width: modalWidth,
+            text: 'CLEAN UP TIME!', fontSize: Math.min(stageWidth * 0.04, 40), fontStyle: 'bold',
+            fill: '#008B8B', align: 'center', shadowColor: 'white', shadowBlur: 2, shadowOffset: {x: 1, y: 1}
+        });
+        this.choiceUIGroup.add(titleText);
+
+        // --- NEW TEXT: Explains the rules ---
+        const explainText = new Konva.Text({
+            x: modalX + modalWidth * 0.1, y: modalY + modalHeight * 0.25, width: modalWidth * 0.8,
+            text: `You have ${this.totalDishesToClean} dishes to clean from today's sales. This choice affects your reputation!\n\nPLAY: Cleaning boosts your reputation, leading to more customers tomorrow. A perfect job gives an extra boost!\n\nSKIP: Customers get sick! This badly hurts your reputation (fewer customers) and you receive a $50 fine.`,
+            fontSize: Math.min(stageWidth * 0.018, 18), fill: '#333', align: 'center', lineHeight: 1.4
+        });
+        this.choiceUIGroup.add(explainText);
+
+        // --- Buttons repositioned ---
+        const playButtonWidth = modalWidth * 0.25;
+        const playButtonHeight = modalHeight * 0.15;
+        const playButtonX = modalX + modalWidth * 0.3 - playButtonWidth / 2; 
+        const playButtonY = modalY + modalHeight * 0.75;
+ 
+        const playButtonGroup = new Konva.Group({ x: playButtonX, y: playButtonY }); 
+        const playRect = new Konva.Rect({
+            width: playButtonWidth, height: playButtonHeight, fill: '#90EE90',
+            cornerRadius: 10, stroke: '#2E8B57', strokeWidth: 3,
+        });
+        const playText = new Konva.Text({
+            width: playButtonWidth, height: playButtonHeight, text: 'PLAY', 
+            fontSize: Math.min(stageWidth * 0.025, 25), fill: 'white',
+            align: 'center', verticalAlign: 'middle', fontStyle: 'bold', listening: false
+        });
+        playButtonGroup.add(playRect, playText);
+        this.choiceUIGroup.add(playButtonGroup);
+
+        playRect.on('click tap', () => {
+            this.choiceUIGroup.visible(false); 
+            this.showMinigameUI();           
+        });
+        playRect.on('mouseenter', () => { stage.container().style.cursor = 'pointer'; playRect.fill('#3CB371'); this.layer.batchDraw(); });
+        playRect.on('mouseleave', () => { stage.container().style.cursor = 'default'; playRect.fill('#90EE90'); this.layer.batchDraw(); });
+
+        const skipButtonWidth = playButtonWidth;
+        const skipButtonHeight = playButtonHeight;
+        const skipButtonX = modalX + modalWidth * 0.7 - skipButtonWidth / 2; 
+        const skipButtonY = playButtonY;
+
+        const skipButtonGroup = new Konva.Group({ x: skipButtonX, y: skipButtonY });
+        const skipRect = new Konva.Rect({
+            width: skipButtonWidth, height: skipButtonHeight, fill: '#F08080',
+            cornerRadius: 10, stroke: '#CD5C5C', strokeWidth: 3,
+        });
+        const skipText = new Konva.Text({
+            width: skipButtonWidth, height: skipButtonHeight, text: 'SKIP', 
+            fontSize: Math.min(stageWidth * 0.025, 25), fill: 'white',
+            align: 'center', verticalAlign: 'middle', fontStyle: 'bold', listening: false
+        });
+        skipButtonGroup.add(skipRect, skipText);
+        this.choiceUIGroup.add(skipButtonGroup);
+
+        skipRect.on('click tap', () => {
+            this.choiceUIGroup.visible(false); 
+            this.correctAnswers = 0; 
+            this.endMinigame(true);         
+        });
+        skipRect.on('mouseenter', () => { stage.container().style.cursor = 'pointer'; skipRect.fill('#CD5C5C'); this.layer.batchDraw(); });
+        skipRect.on('mouseleave', () => { stage.container().style.cursor = 'default'; skipRect.fill('#F08080'); this.layer.batchDraw(); });
+
+        this.choiceUIGroup.visible(true);
+        this.layer.batchDraw();
+    }
+
+    private showMinigameUI(): void {
+        this.minigameUIGroup.visible(true);
+        this.setupUI(); 
         this.generateNewProblem();
         this.startTimer();
         this.setupKeyboardInput();
+        this.layer.batchDraw();
     }
 
+
     private setupUI(): void {
-        // Background for cleaning theme
-        /*
-        const background = new Konva.Rect({
-            x: 0,
-            y: 0,
-            width: this.stage.width(),
-            height: this.stage.height(),
-            fill: '#e8f4f8'
-        });
-        this.layer.add(background);
-        */
-        // Title
         const title = new Konva.Text({
             x: 50,
             y: 30,
@@ -67,9 +161,8 @@ export class CleaningMinigame {
             fill: '#16a085',
             fontStyle: 'bold'
         });
-        this.layer.add(title);
+        this.minigameUIGroup.add(title);
 
-        // Timer
         this.timerText = new Konva.Text({
             x: 1400,
             y: 30,
@@ -78,9 +171,8 @@ export class CleaningMinigame {
             fill: '#27ae60',
             fontStyle: 'bold'
         });
-        this.layer.add(this.timerText);
+        this.minigameUIGroup.add(this.timerText);
 
-        // Score (dishes cleaned)
         this.scoreText = new Konva.Text({
             x: 50,
             y: 80,
@@ -88,18 +180,16 @@ export class CleaningMinigame {
             fontSize: 20,
             fill: '#16a085'
         });
-        this.layer.add(this.scoreText);
+        this.minigameUIGroup.add(this.scoreText);
 
-        // Dish visual indicator
         const dishText = new Konva.Text({
             x: 700,
             y: 150,
             text: '🍽️',
             fontSize: 80
         });
-        this.layer.add(dishText);
+        this.minigameUIGroup.add(dishText);
 
-        // Problem display
         this.problemText = new Konva.Text({
             x: 650,
             y: 300,
@@ -110,9 +200,8 @@ export class CleaningMinigame {
             align: 'center',
             width: 300
         });
-        this.layer.add(this.problemText);
+        this.minigameUIGroup.add(this.problemText);
 
-        // Input box background
         const inputBox = new Konva.Rect({
             x: 600,
             y: 400,
@@ -126,9 +215,8 @@ export class CleaningMinigame {
             shadowBlur: 10,
             shadowOpacity: 0.2
         });
-        this.layer.add(inputBox);
+        this.minigameUIGroup.add(inputBox);
 
-        // Input text
         this.inputText = new Konva.Text({
             x: 610,
             y: 418,
@@ -138,9 +226,8 @@ export class CleaningMinigame {
             width: 380,
             align: 'center'
         });
-        this.layer.add(this.inputText);
+        this.minigameUIGroup.add(this.inputText);
 
-        // Feedback text (shows "Correct!" or "Wrong!")
         this.feedbackText = new Konva.Text({
             x: 650,
             y: 520,
@@ -151,9 +238,8 @@ export class CleaningMinigame {
             width: 300,
             fontStyle: 'bold'
         });
-        this.layer.add(this.feedbackText);
+        this.minigameUIGroup.add(this.feedbackText);
 
-        // Instructions
         const instructions = new Konva.Text({
             x: 550,
             y: 650,
@@ -163,9 +249,8 @@ export class CleaningMinigame {
             align: 'center',
             width: 500
         });
-        this.layer.add(instructions);
+        this.minigameUIGroup.add(instructions);
 
-        // Dirty dishes visual
         const dirtyDishesText = new Konva.Text({
             x: 50,
             y: 850,
@@ -174,15 +259,12 @@ export class CleaningMinigame {
             fill: '#e74c3c',
             fontStyle: 'italic'
         });
-        this.layer.add(dirtyDishesText);
-
-        this.layer.draw();
+        this.minigameUIGroup.add(dirtyDishesText);
     }
 
     private generateNewProblem(): void {
-        // Generate multiplication problems
-        const num1 = Math.floor(Math.random() * 12) + 1; // 1-12
-        const num2 = Math.floor(Math.random() * 12) + 1; // 1-12
+        const num1 = Math.floor(Math.random() * 12) + 1; 
+        const num2 = Math.floor(Math.random() * 12) + 1; 
         
         this.currentProblem = {
             question: `${num1} × ${num2}`,
@@ -198,7 +280,7 @@ export class CleaningMinigame {
     }
 
     private handleKeyPress(e: KeyboardEvent): void {
-        if (this.timerInterval === null) return; // Game ended
+        if (this.timerInterval === null || !this.minigameUIGroup.visible()) return;
 
         if (e.key === 'Enter') {
             this.checkAnswer();
@@ -227,10 +309,9 @@ export class CleaningMinigame {
             this.dishesCleaned++;
             this.showFeedback('Clean! ✓', '#27ae60');
             
-            // Check if all dishes are cleaned
             if (this.dishesCleaned >= this.totalDishesToClean) {
                 setTimeout(() => {
-                    this.endMinigame();
+                    this.endMinigame(false); 
                 }, 500);
                 return;
             }
@@ -265,7 +346,6 @@ export class CleaningMinigame {
             this.timeRemaining--;
             this.timerText.text(`Time: ${this.timeRemaining}s`);
             
-            // Change color as time runs low
             if (this.timeRemaining <= 10) {
                 this.timerText.fill('#e74c3c');
             } else if (this.timeRemaining <= 20) {
@@ -275,27 +355,26 @@ export class CleaningMinigame {
             this.layer.draw();
 
             if (this.timeRemaining <= 0) {
-                this.endMinigame();
+                this.endMinigame(false); 
             }
         }, 1000);
     }
 
-    private endMinigame(): void {
+    private endMinigame(skipped: boolean = false): void {
         if (this.timerInterval !== null) {
             clearInterval(this.timerInterval);
             this.timerInterval = null;
         }
 
-        // Remove keyboard listener
         window.removeEventListener('keydown', this.keyboardHandler);
 
         const result: MinigameResult = {
-            correctAnswers: this.correctAnswers,
+            correctAnswers: this.correctAnswers, 
             totalProblems: this.totalProblems,
             timeRemaining: 0
         };
 
-        this.onComplete(result);
+        this.onComplete(result, skipped); 
     }
 
     public cleanup(): void {
@@ -303,5 +382,7 @@ export class CleaningMinigame {
             clearInterval(this.timerInterval);
         }
         window.removeEventListener('keydown', this.keyboardHandler);
+        this.minigameUIGroup.destroy();
+        this.choiceUIGroup.destroy();
     }
 }

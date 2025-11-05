@@ -4,29 +4,32 @@ export class DaySummaryScreen {
     private layer: Konva.Layer;
     private stage: Konva.Stage;
     private onContinue: () => void;
-    private sales: number;
-    private expenses: number;
-    private profit: number;
-    private remainingFunds: number;
     private currentDay: number;
+    private daySales: number;
+    private dayExpenses: number;
+    private currentFunds: number;
+    private dayTips: number; // <-- ADDED THIS
 
+    // --- MODIFIED CONSTRUCTOR ---
     constructor(
         stage: Konva.Stage,
         layer: Konva.Layer,
         currentDay: number,
-        sales: number,
-        expenses: number,
-        remainingFunds: number,
+        daySales: number,
+        dayExpenses: number,
+        currentFunds: number,
+        dayTips: number, // <-- ADDED THIS
         onContinue: () => void
     ) {
         this.stage = stage;
         this.layer = layer;
         this.currentDay = currentDay;
-        this.sales = sales;
-        this.expenses = expenses;
-        this.profit = sales - expenses;
-        this.remainingFunds = remainingFunds;
+        this.daySales = daySales;
+        this.dayExpenses = dayExpenses;
+        this.currentFunds = currentFunds;
+        this.dayTips = dayTips; // <-- SET THIS
         this.onContinue = onContinue;
+
         this.setupUI();
     }
 
@@ -34,134 +37,155 @@ export class DaySummaryScreen {
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
 
+        // Background box
+        const backgroundRect = new Konva.Rect({
+            x: stageWidth * 0.2,
+            y: stageHeight * 0.15,
+            width: stageWidth * 0.6,
+            height: stageHeight * 0.7,
+            fill: '#FDF5E6',
+            stroke: '#A0522D',
+            strokeWidth: 5,
+            cornerRadius: 15,
+            shadowColor: 'black',
+            shadowBlur: 15,
+            shadowOpacity: 0.5,
+            shadowOffsetX: 5,
+            shadowOffsetY: 5
+        });
+        this.layer.add(backgroundRect);
+
         // Title
         const title = new Konva.Text({
-            x: stageWidth * 0.1,
-            y: stageHeight * 0.1,
-            width: stageWidth * 0.8,
-            text: `Day ${this.currentDay} - End of Day Summary`,
-            fontSize: Math.min(stageWidth * 0.04, 48),
+            x: backgroundRect.x(),
+            y: backgroundRect.y() + stageHeight * 0.05,
+            width: backgroundRect.width(),
+            text: `DAY ${this.currentDay} SUMMARY`,
+            fontSize: Math.min(stageWidth * 0.035, 42),
             fontStyle: 'bold',
-            fill: 'black',
+            fill: '#8B4513',
             align: 'center'
         });
         this.layer.add(title);
 
-        let currentY = stageHeight * 0.25;
+        let currentY = title.y() + title.height() + stageHeight * 0.05;
 
-        // Total Sales
+        // Sales
         const salesText = new Konva.Text({
-            x: stageWidth * 0.2,
+            x: backgroundRect.x() + backgroundRect.width() * 0.1,
             y: currentY,
-            width: stageWidth * 0.6,
-            text: `Total Sales: $${this.sales.toFixed(2)}`,
-            fontSize: Math.min(stageWidth * 0.03, 36),
-            fill: '#27ae60',
+            width: backgroundRect.width() * 0.8,
+            text: `Sales (Cookies Sold): $${this.daySales.toFixed(2)}`,
+            fontSize: Math.min(stageWidth * 0.018, 22),
+            fill: '#228B22',
             fontStyle: 'bold'
         });
         this.layer.add(salesText);
-        currentY += stageHeight * 0.1;
+        currentY += salesText.height() + stageHeight * 0.02;
+        
+        // --- NEW: Tips Earned ---
+        const tipsText = new Konva.Text({
+            x: backgroundRect.x() + backgroundRect.width() * 0.1,
+            y: currentY,
+            width: backgroundRect.width() * 0.8,
+            text: `Tips Earned: $${this.dayTips.toFixed(2)}`,
+            fontSize: Math.min(stageWidth * 0.018, 22),
+            fill: '#FFD700', // Gold color
+            fontStyle: 'bold'
+        });
+        this.layer.add(tipsText);
+        currentY += tipsText.height() + stageHeight * 0.02;
 
         // Expenses
         const expensesText = new Konva.Text({
-            x: stageWidth * 0.2,
+            x: backgroundRect.x() + backgroundRect.width() * 0.1,
             y: currentY,
-            width: stageWidth * 0.6,
-            text: `Expenses: -$${this.expenses.toFixed(2)}`,
-            fontSize: Math.min(stageWidth * 0.03, 36),
-            fill: '#e74c3c',
+            width: backgroundRect.width() * 0.8,
+            text: `Expenses (Ingredients, Fines): -$${this.dayExpenses.toFixed(2)}`,
+            fontSize: Math.min(stageWidth * 0.018, 22),
+            fill: '#B22222',
             fontStyle: 'bold'
         });
         this.layer.add(expensesText);
-        currentY += stageHeight * 0.1;
+        currentY += expensesText.height() + stageHeight * 0.04;
 
-        // Separator line
-        const separator = new Konva.Line({
-            points: [stageWidth * 0.2, currentY, stageWidth * 0.8, currentY],
-            stroke: 'black',
-            strokeWidth: 2
-        });
-        this.layer.add(separator);
-        currentY += stageHeight * 0.05;
-
-        // Profit
-        const profitColor = this.profit >= 0 ? '#27ae60' : '#e74c3c';
-        const profitText = new Konva.Text({
-            x: stageWidth * 0.2,
+        // Net Change
+        const netChange = this.daySales + this.dayTips - this.dayExpenses; // Include tips
+        const netChangeColor = netChange >= 0 ? '#006400' : '#8B0000';
+        const netChangeText = new Konva.Text({
+            x: backgroundRect.x() + backgroundRect.width() * 0.1,
             y: currentY,
-            width: stageWidth * 0.6,
-            text: `Profit: ${this.profit >= 0 ? '+' : ''}$${this.profit.toFixed(2)}`,
-            fontSize: Math.min(stageWidth * 0.035, 42),
-            fill: profitColor,
+            width: backgroundRect.width() * 0.8,
+            text: `Net Change: ${netChange >= 0 ? '+' : ''}$${netChange.toFixed(2)}`,
+            fontSize: Math.min(stageWidth * 0.02, 26),
+            fill: netChangeColor,
             fontStyle: 'bold'
         });
-        this.layer.add(profitText);
-        currentY += stageHeight * 0.12;
+        this.layer.add(netChangeText);
+        currentY += netChangeText.height() + stageHeight * 0.04;
 
-        // Remaining Funds
+        // Current Funds
         const fundsText = new Konva.Text({
-            x: stageWidth * 0.2,
+            x: backgroundRect.x() + backgroundRect.width() * 0.1,
             y: currentY,
-            width: stageWidth * 0.6,
-            text: `Remaining Funds: $${this.remainingFunds.toFixed(2)}`,
-            fontSize: Math.min(stageWidth * 0.032, 38),
-            fill: '#2c3e50',
+            width: backgroundRect.width() * 0.8,
+            text: `Current Funds: $${this.currentFunds.toFixed(2)}`,
+            fontSize: Math.min(stageWidth * 0.025, 30),
+            fill: '#4682B4',
             fontStyle: 'bold'
         });
         this.layer.add(fundsText);
 
-        // Continue button
-        this.createContinueButton(stageWidth, stageHeight);
+        // Continue Button
+        const buttonWidth = Math.min(stageWidth * 0.2, 250);
+        const buttonHeight = Math.min(stageHeight * 0.07, 50);
+
+        const continueButton = new Konva.Rect({
+            x: (stageWidth - buttonWidth) / 2,
+            y: backgroundRect.y() + backgroundRect.height() - buttonHeight - stageHeight * 0.03,
+            width: buttonWidth,
+            height: buttonHeight,
+            fill: '#6B8E23',
+            cornerRadius: 10,
+            shadowColor: 'black',
+            shadowBlur: 5,
+            shadowOpacity: 0.3,
+            shadowOffsetX: 2,
+            shadowOffsetY: 2
+        });
+        this.layer.add(continueButton);
+
+        const continueText = new Konva.Text({
+            x: continueButton.x(),
+            y: continueButton.y() + (buttonHeight - Math.min(stageWidth * 0.02, 24)) / 2,
+            width: buttonWidth,
+            text: 'CONTINUE',
+            fontSize: Math.min(stageWidth * 0.02, 24),
+            fill: 'white',
+            align: 'center',
+            fontStyle: 'bold',
+            listening: false
+        });
+        this.layer.add(continueText);
+
+        continueButton.on('click tap', () => {
+            this.onContinue();
+        });
+        continueButton.on('mouseenter', () => {
+            this.stage.container().style.cursor = 'pointer';
+            continueButton.fill('#556B2F');
+            this.layer.batchDraw();
+        });
+        continueButton.on('mouseleave', () => {
+            this.stage.container().style.cursor = 'default';
+            continueButton.fill('#6B8E23');
+            this.layer.batchDraw();
+        });
 
         this.layer.draw();
     }
 
-    private createContinueButton(stageWidth: number, stageHeight: number): void {
-        const buttonWidth = Math.min(stageWidth * 0.25, 300);
-        const buttonHeight = Math.min(stageHeight * 0.08, 60);
-
-        const buttonGroup = new Konva.Group({
-            x: (stageWidth - buttonWidth) / 2,
-            y: stageHeight * 0.8
-        });
-
-        const rect = new Konva.Rect({
-            width: buttonWidth,
-            height: buttonHeight,
-            fill: '#4CAF50',
-            cornerRadius: 10
-        });
-
-        const text = new Konva.Text({
-            width: buttonWidth,
-            height: buttonHeight,
-            text: 'CONTINUE',
-            fontSize: Math.min(stageWidth * 0.022, 28),
-            fill: 'white',
-            align: 'center',
-            verticalAlign: 'middle',
-            fontStyle: 'bold'
-        });
-
-        buttonGroup.add(rect);
-        buttonGroup.add(text);
-
-        buttonGroup.on('click', this.onContinue);
-        buttonGroup.on('mouseenter', () => {
-            this.stage.container().style.cursor = 'pointer';
-            rect.fill('#45a049');
-            this.layer.draw();
-        });
-        buttonGroup.on('mouseleave', () => {
-            this.stage.container().style.cursor = 'default';
-            rect.fill('#4CAF50');
-            this.layer.draw();
-        });
-
-        this.layer.add(buttonGroup);
-    }
-
     public cleanup(): void {
-        // Cleanup if needed
+        this.layer.destroyChildren();
     }
 }

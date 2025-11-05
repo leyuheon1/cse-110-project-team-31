@@ -7,8 +7,8 @@ export class ConfigManager {
     private constructor() {
         // Default values
         this.config = {
-            startingFunds: 1000,
-            winThreshold: 5000,
+            startingFunds: 250,
+            winThreshold: 2000,
             bankruptcyThreshold: 0,
             flourPriceMin: 5,
             flourPriceMax: 15,
@@ -17,7 +17,7 @@ export class ConfigManager {
             maxBreadCapacity: 20,
             divisionProblems: 10,
             multiplicationProblems: 8,
-            cookiePrice: 15
+            cookiePrice: 20 
         };
     }
 
