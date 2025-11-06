@@ -10,13 +10,14 @@ export class LoginScreen {
     private cursor: Konva.Rect;
     private cursorInterval: number | null = null;
     private keyboardHandler: (e: KeyboardEvent) => void;
+    private loginBackground: Konva.Image | null = null; // <-- ADDED
 
     constructor(stage: Konva.Stage, layer: Konva.Layer, onLogin: (username: string) => void) {
         this.stage = stage;
         this.layer = layer;
         this.onLogin = onLogin;
         this.keyboardHandler = this.handleKeyPress.bind(this);
-        this.setupUI();
+        this.setupUI(); // This will call the new async function
         this.setupKeyboardInput();
     }
 
@@ -24,7 +25,24 @@ export class LoginScreen {
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
 
-        await document.fonts.load('24px "Press Start 2P');
+        const imageObj = new Image();
+        imageObj.onload = () => {
+            this.loginBackground = new Konva.Image({
+                x: 0,
+                y: 0,
+                image: imageObj,
+                width: stageWidth,
+                height: stageHeight,
+            });
+            this.layer.add(this.loginBackground);
+            this.loginBackground.moveToBottom(); // <-- THIS IS THE FIX
+            this.layer.batchDraw(); // Draw background first
+        };
+        imageObj.src = '/login-background.png'; // <-- Use the correct image
+
+
+        // Load the special font
+        await document.fonts.load('24px "Press Start 2P"');
 
         // Title
         const titleImageObj = new Image();
@@ -41,9 +59,10 @@ export class LoginScreen {
                 height: fixedHeight
             });
             this.layer.add(titleImage);
-            this.layer.draw();
+            titleImage.moveToTop(); // Make sure title is on top of background
+            this.layer.batchDraw();
         };
-        titleImageObj.src = '/title-logo.png'
+        titleImageObj.src = '/title-logo.png';
 
         // Subtitle
         const subtitle = new Konva.Text({
@@ -52,9 +71,9 @@ export class LoginScreen {
             width: stageWidth,
             text: 'Enter your name to begin!',
             fontSize: Math.min(stageWidth * 0.025, 24),
-            fontFamily: '"Press Start 2P"',
-            fill: '#ffffff',
-            shadowColor: 'd3d3d3',
+            fontFamily: '"Press Start 2P"', 
+            fill: '#ffffff', 
+            shadowColor: 'd3d3d3', 
             shadowBlur: 5,
             align: 'center'
         });
@@ -67,8 +86,10 @@ export class LoginScreen {
             width: stageWidth * 0.4,
             height: 60,
             fill: 'white',
+            stroke: '#fcbf49', 
             stroke: '#fcbf49',
             strokeWidth: 4,
+            cornerRadius: 10 
         });
         this.layer.add(inputBox);
        
@@ -77,7 +98,7 @@ export class LoginScreen {
             x: (stageWidth - (stageWidth * 0.4)) / 2 + 15,
             y: stageHeight * 0.45 + 18,
             text: '',
-            fontFamily: '"Press Start 2P"',
+            fontFamily: '"Press Start 2P"', 
             fontSize: 24,
             fill: 'black',
             width: stageWidth * 0.4 - 30
@@ -143,8 +164,8 @@ export class LoginScreen {
 
         // Sign post
         const post = new Konva.Rect({
-            x: buttonWidth / 2 - 10, // center under the button
-            y: buttonHeight,         // directly below the button
+            x: buttonWidth / 2 - 10, 
+            y: buttonHeight,         
             width: 20,
             height: 150,
             fill: '#b5895a',
@@ -163,7 +184,7 @@ export class LoginScreen {
             align: 'center',
             verticalAlign: 'middle',
             fontStyle: 'bold',
-            fontFamily: 'Press Start 2P'
+            fontFamily: 'Press Start 2P' 
         });
 
         buttonGroup.add(board);
@@ -218,7 +239,6 @@ export class LoginScreen {
         if (e.key === 'Backspace') {
             this.username = this.username.slice(0, -1);
         } else if (e.key.length === 1 && this.username.length < 20) {
-            // Allow letters, numbers, and spaces
             if (/[a-zA-Z0-9 ]/.test(e.key)) {
                 this.username += e.key;
             }
@@ -230,7 +250,6 @@ export class LoginScreen {
     private updateInputDisplay(): void {
         this.inputText.text(this.username);
         
-        // Update cursor position
         const textWidth = this.inputText.getTextWidth();
         this.cursor.x(this.inputText.x() + textWidth + 2);
         
@@ -241,6 +260,10 @@ export class LoginScreen {
         window.removeEventListener('keydown', this.keyboardHandler);
         if (this.cursorInterval) {
             clearInterval(this.cursorInterval);
+        }
+        // --- ADDED: Clean up background ---
+        if (this.loginBackground) {
+            this.loginBackground.destroy();
         }
     }
 }

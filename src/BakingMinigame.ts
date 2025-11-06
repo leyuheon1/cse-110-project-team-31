@@ -191,48 +191,79 @@ export class BakingMinigame {
 
         const modalBg = new Konva.Rect({
             x: modalX, y: modalY, width: modalWidth, height: modalHeight,
-            fill: '#FFF8DC', cornerRadius: 20, stroke: '#F4A460', strokeWidth: 5,
+            fill: '#FFFFFF', 
+            cornerRadius: 15, 
+            stroke: '#da5552', 
+            strokeWidth: 4, 
             shadowColor: 'black', shadowBlur: 10, shadowOpacity: 0.3, shadowOffset: {x: 3, y: 3}
         });
         this.choiceUIGroup.add(modalBg);
 
         const titleText = new Konva.Text({
-            x: modalX, y: modalY + modalHeight * 0.08, width: modalWidth, 
-            text: 'EARN BONUS TIPS!', 
-            fontSize: Math.min(stageWidth * 0.04, 40), fontStyle: 'bold',
-            fill: '#D2691E', align: 'center', shadowColor: 'white', shadowBlur: 2, shadowOffset: {x: 1, y: 1}
+            x: modalX, y: modalY + modalHeight * 0.1, width: modalWidth, 
+            text: 'SPEED UP THE PROCESS!', 
+            fontSize: Math.min(stageWidth * 0.035, 36),
+            fontFamily: '"Press Start 2P"', 
+            fill: '#F39C12', 
+            align: 'center', 
+            stroke: '#da5552', 
+            strokeWidth: 2,   
+            shadowColor: 'black', shadowBlur: 2, shadowOffset: {x: 1, y: 1}
         });
         this.choiceUIGroup.add(titleText);
 
-        const cookiesBakedText = new Konva.Text({
-            x: modalX, y: modalY + modalHeight * 0.22, width: modalWidth, 
-            text: `Your ${this.cookiesSold} cookies are automatically baked and sold!`,
-            fontSize: Math.min(stageWidth * 0.02, 20), fontStyle: 'bold',
-            fill: '#8B4513', align: 'center',
+        const subTitle = new Konva.Text({
+            x: modalX, y: titleText.y() + titleText.height() + 5, width: modalWidth,
+            text: 'Minigame',
+            fontSize: Math.min(stageWidth * 0.015, 18),
+            fontFamily: '"Press Start 2P"',
+            fill: '#E67E22', 
+            align: 'center'
         });
-        this.choiceUIGroup.add(cookiesBakedText);
-        
+        this.choiceUIGroup.add(subTitle);
+
+        const newBodyText = [
+            'Solve the puzzles to bake cookies faster!',
+            'Baking faster will result in tips from customers, increasing your earnings!',
+            'Skipping will result in no tips earned.'
+        ].join('\n\n'); 
+
         const explainText = new Konva.Text({
-            x: modalX + modalWidth * 0.1, y: modalY + modalHeight * 0.32, width: modalWidth * 0.8, 
-            text: 'Play this minigame to earn extra cash tips!\n\nEach correct answer = +$1 Tip.\n\nSkipping means you earn $0 in bonus tips.',
-            fontSize: Math.min(stageWidth * 0.018, 18), fill: '#333', align: 'center', lineHeight: 1.4
+            x: modalX + modalWidth * 0.1, 
+            y: subTitle.y() + subTitle.height() + modalHeight * 0.05, 
+            width: modalWidth * 0.8, 
+            text: newBodyText,
+            fontSize: Math.min(stageWidth * 0.022, 26), // <-- CHANGED: Made font bigger
+            fill: '#333', 
+            align: 'center', 
+            lineHeight: 1.6,
+            fontFamily: '"Nunito"', 
+            fontStyle: 'bold'      
         });
         this.choiceUIGroup.add(explainText);
 
         const promptText = new Konva.Text({
-            x: modalX, y: modalY + modalHeight * 0.58, width: modalWidth, 
-            text: 'Would you like to play for tips?', 
-            fontSize: Math.min(stageWidth * 0.022, 22), fontStyle: 'italic',
-            fill: '#DAA520', align: 'center',
+            x: modalX, 
+            // <-- CHANGED: Positioned dynamically after explainText
+            y: explainText.y() + explainText.height() + modalHeight * 0.04, 
+            width: modalWidth, 
+            text: 'Would you like to play?', 
+            fontSize: Math.min(stageWidth * 0.022, 22), // <-- NOTE: Kept this size, you can increase it too
+            fill: '#E67E22', 
+            align: 'center',
+            fontFamily: '"Nunito"', 
+            fontStyle: 'bold'      
         });
         this.choiceUIGroup.add(promptText);
 
         const playButtonWidth = modalWidth * 0.25;
         const playButtonHeight = modalHeight * 0.15;
         const playButtonX = modalX + modalWidth * 0.3 - playButtonWidth / 2; 
-        const playButtonY = modalY + modalHeight * 0.75;
- 
-        const playButtonGroup = new Konva.Group({ x: playButtonX, y: playButtonY }); 
+        
+        // <-- CHANGED: Button Y position is now DYNAMIC, placed after promptText
+        const playButtonY = promptText.y() + promptText.height() + modalHeight * 0.05;
+
+        const playButtonGroup = new Konva.Group({ x: playButtonX, y: playButtonY }); // <-- CHANGED
         const playRect = new Konva.Rect({
             width: playButtonWidth, height: playButtonHeight, fill: '#90EE90',
             cornerRadius: 10, stroke: '#2E8B57', strokeWidth: 3,
@@ -258,9 +289,9 @@ export class BakingMinigame {
         const skipButtonWidth = playButtonWidth;
         const skipButtonHeight = playButtonHeight;
         const skipButtonX = modalX + modalWidth * 0.7 - skipButtonWidth / 2; 
-        const skipButtonY = playButtonY;
+        const skipButtonY = playButtonY; // <-- NEW: Make skip button share the same Y
 
-        const skipButtonGroup = new Konva.Group({ x: skipButtonX, y: skipButtonY });
+        const skipButtonGroup = new Konva.Group({ x: skipButtonX, y: skipButtonY }); // <-- CHANGED
         const skipRect = new Konva.Rect({
             width: skipButtonWidth, height: skipButtonHeight, fill: '#F08080',
             cornerRadius: 10, stroke: '#CD5C5C', strokeWidth: 3,

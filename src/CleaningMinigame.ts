@@ -53,7 +53,7 @@ export class CleaningMinigame {
         this.showPlaySkipChoice();
     }
 
-    // --- MODIFIED: showPlaySkipChoice ---
+    // --- THIS METHOD IS UPDATED ---
     private showPlaySkipChoice(): void {
         this.choiceUIGroup.destroyChildren();
         const stageWidth = this.stage.width();
@@ -67,33 +67,47 @@ export class CleaningMinigame {
 
         const modalBg = new Konva.Rect({
             x: modalX, y: modalY, width: modalWidth, height: modalHeight,
-            fill: '#E0FFFF', cornerRadius: 20, stroke: '#008B8B', strokeWidth: 5,
+            fill: '#FFFFFF', // <-- CHANGED
+            cornerRadius: 15, // <-- CHANGED
+            stroke: '#da5552', // <-- CHANGED
+            strokeWidth: 4, // <-- CHANGED
             shadowColor: 'black', shadowBlur: 10, shadowOpacity: 0.3, shadowOffset: {x: 3, y: 3}
         });
         this.choiceUIGroup.add(modalBg);
 
         const titleText = new Konva.Text({
             x: modalX, y: modalY + modalHeight * 0.1, width: modalWidth,
-            text: 'CLEAN UP TIME!', fontSize: Math.min(stageWidth * 0.04, 40), fontStyle: 'bold',
-            fill: '#008B8B', align: 'center', shadowColor: 'white', shadowBlur: 2, shadowOffset: {x: 1, y: 1}
+            text: 'CLEAN UP TIME!', 
+            fontSize: Math.min(stageWidth * 0.04, 40), 
+            fontFamily: '"Press Start 2P"', // <-- CHANGED
+            fill: '#008B8B', // Kept original teal color for theme
+            align: 'center', 
+            shadowColor: 'white', shadowBlur: 2, shadowOffset: {x: 1, y: 1}
         });
         this.choiceUIGroup.add(titleText);
 
-        // --- NEW TEXT: Explains the rules ---
         const explainText = new Konva.Text({
-            x: modalX + modalWidth * 0.1, y: modalY + modalHeight * 0.25, width: modalWidth * 0.8,
+            x: modalX + modalWidth * 0.1, 
+            y: titleText.y() + titleText.height() + modalHeight * 0.05, // <-- CHANGED
+            width: modalWidth * 0.8,
             text: `You have ${this.totalDishesToClean} dishes to clean from today's sales. This choice affects your reputation!\n\nPLAY: Cleaning boosts your reputation, leading to more customers tomorrow. A perfect job gives an extra boost!\n\nSKIP: Customers get sick! This badly hurts your reputation (fewer customers) and you receive a $50 fine.`,
-            fontSize: Math.min(stageWidth * 0.018, 18), fill: '#333', align: 'center', lineHeight: 1.4
+            fontSize: Math.min(stageWidth * 0.022, 26), // <-- CHANGED (made bigger)
+            fill: '#333', 
+            align: 'center', 
+            lineHeight: 1.6, // <-- CHANGED
+            fontFamily: '"Nunito"', // <-- CHANGED
+            fontStyle: 'bold' // <-- CHANGED
         });
         this.choiceUIGroup.add(explainText);
 
-        // --- Buttons repositioned ---
         const playButtonWidth = modalWidth * 0.25;
         const playButtonHeight = modalHeight * 0.15;
         const playButtonX = modalX + modalWidth * 0.3 - playButtonWidth / 2; 
-        const playButtonY = modalY + modalHeight * 0.75;
+        
+        // <-- CHANGED: Button Y is now dynamic
+        const playButtonY = explainText.y() + explainText.height() + modalHeight * 0.08;
  
-        const playButtonGroup = new Konva.Group({ x: playButtonX, y: playButtonY }); 
+        const playButtonGroup = new Konva.Group({ x: playButtonX, y: playButtonY }); // <-- CHANGED 
         const playRect = new Konva.Rect({
             width: playButtonWidth, height: playButtonHeight, fill: '#90EE90',
             cornerRadius: 10, stroke: '#2E8B57', strokeWidth: 3,
@@ -116,9 +130,9 @@ export class CleaningMinigame {
         const skipButtonWidth = playButtonWidth;
         const skipButtonHeight = playButtonHeight;
         const skipButtonX = modalX + modalWidth * 0.7 - skipButtonWidth / 2; 
-        const skipButtonY = playButtonY;
+        const skipButtonY = playButtonY; // <-- CHANGED (to match play button Y)
 
-        const skipButtonGroup = new Konva.Group({ x: skipButtonX, y: skipButtonY });
+        const skipButtonGroup = new Konva.Group({ x: skipButtonX, y: skipButtonY }); // <-- CHANGED
         const skipRect = new Konva.Rect({
             width: skipButtonWidth, height: skipButtonHeight, fill: '#F08080',
             cornerRadius: 10, stroke: '#CD5C5C', strokeWidth: 3,
@@ -152,7 +166,9 @@ export class CleaningMinigame {
         this.layer.batchDraw();
     }
 
-
+    // This is the UI for the minigame itself, not the popup
+    // As I mentioned before, this part uses static pixel values
+    // It will not be responsive like the popups
     private setupUI(): void {
         const title = new Konva.Text({
             x: 50,
