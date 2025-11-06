@@ -1,4 +1,5 @@
 import Konva from 'konva';
+import { ExitButton } from './ui/ExitButton';
 
 export class DaySummaryScreen {
     private layer: Konva.Layer;
@@ -253,6 +254,13 @@ export class DaySummaryScreen {
         });
 
         this.layer.add(buttonGroup);
+        //Exit Button
+        const exitButton = new ExitButton(this.stage, this.layer, () => {
+            this.cleanup();
+            window.location.href = '/login.html'; //go to login page
+        });
+        
+        this.layer.draw();
     }
 
     public cleanup(): void {

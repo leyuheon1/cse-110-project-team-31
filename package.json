@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "repository": {
     "type": "git",
@@ -23,7 +24,9 @@
     "konva": "^10.0.8"
   },
   "devDependencies": {
+    "jsdom": "^27.1.0",
     "typescript": "^5.9.3",
-    "vite": "^7.1.12"
+    "vite": "^7.1.12",
+    "vitest": "^4.0.7"
   }
 }

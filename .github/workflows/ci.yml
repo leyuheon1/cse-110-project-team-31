@@ -1,0 +1,36 @@
+# .github/workflows/ci.yml
+
+name: Run Trivial Tests
+
+on:
+  # 1. Run automatically on new push events to the main branch
+  push:
+    branches: [ "main" ]
+  
+  # 2. Allow running this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  # Job to build and run the tests
+  build-and-test:
+    # Use the latest stable version of Ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out your repository's code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up the Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use Node.js version 20
+
+      # Step 3: Install all project dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Step 4: Run the test script from package.json
+      - name: Run tests
+        run: npm test

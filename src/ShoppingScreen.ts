@@ -1,4 +1,5 @@
 import Konva from 'konva';
+import { ExitButton } from './ui/ExitButton';
 
 interface IngredientItem {
     name: string;
@@ -103,6 +104,12 @@ export class ShoppingScreen {
         // Add "View Recipe" button to the top right
         this.createViewRecipeButton(stageWidth, stageHeight);
 
+        //Exit Button
+        const exitButton = new ExitButton(this.stage, this.layer, () => {
+            this.cleanup();
+            window.location.href = '/login.hmtl'; //go to login page
+        });
+        
         this.layer.draw();
     }
     

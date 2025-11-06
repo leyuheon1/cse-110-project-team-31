@@ -1,4 +1,5 @@
 import Konva from 'konva';
+import { ExitButton } from './ui/ExitButton';
 
 export class OrderScreen {
     private layer: Konva.Layer;
@@ -33,6 +34,18 @@ export class OrderScreen {
             this.createReceiptGroup(stageWidth, stageHeight);
             this.createContinueButton(stageWidth, stageHeight);
         });
+        this.layer.add(title);
+
+        this.loadOwlImage(stageWidth, stageHeight);
+        this.loadOrderPlaceholder(stageWidth, stageHeight); 
+
+        //Exit Button
+        const exitButton = new ExitButton(this.stage, this.layer, () => {
+            this.cleanup();
+            window.location.href = '/login.html'; //go to login page
+        });
+
+        this.layer.draw(); 
     }
 
     private loadOwlImage(stageWidth: number, stageHeight: number, onLoad: () => void): void {
