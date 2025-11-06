@@ -1,4 +1,5 @@
 import Konva from 'konva';
+import { ExitButton } from './ui/ExitButton';
 
 export class HowToPlayScreen {
     private layer: Konva.Layer;
@@ -48,6 +49,12 @@ export class HowToPlayScreen {
         // Start button (responsive)
         this.createStartButton(stageWidth, stageHeight);
 
+        //Exit Button
+        const exitButton = new ExitButton(this.stage, this.layer, () => {
+            this.cleanup();
+            window.location.href = '/login.hmtl'; //go to login page
+        });
+        
         this.layer.draw();
     }
 
