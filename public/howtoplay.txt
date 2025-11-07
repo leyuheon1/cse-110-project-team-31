@@ -1,3 +1,3 @@
-Owl will receive a orders list at the beginning of each day. There will be a list of customers and how many cookies each customer wants to buy. 
-
+Owl will receive a orders list at the beginning of each day. 
+There will be a list of customers and how many cookies each customer wants to buy. 
 Using the information, calculate how many of each ingredient you will need to buy to successfully complete the orders.
