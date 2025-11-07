@@ -43,6 +43,12 @@ export class DaySummaryScreen {
             this.createReceiptGroup(stageWidth, stageHeight);
             this.createContinueButton(stageWidth, stageHeight);
         });
+
+        //Exit Button
+        const exitButton = new ExitButton(this.stage, this.layer, () => {
+            this.cleanup();
+            window.location.href = '/login.hmtl'; //go to login page
+        });
     }
 
     // --- NEW: Add owl image like OrderSummary page ---

@@ -135,7 +135,7 @@ export class RecipeBookScreen {
         const text = new Konva.Text({
             width: buttonWidth,
             height: buttonHeight,
-            text: 'BACK', // Changed text
+            text: 'BUY INGREDIENTS', // Changed text
             fontSize: Math.min(stageWidth * 0.022, 28),
             fill: 'white',
             align: 'center',
