@@ -87,7 +87,7 @@ export class AnimationPlayer {
             this.konvaImage.image(this.frames[0]);
             this.konvaImage.visible(true);
         }
-        
+
         this.currentFrameIndex = 0;
         this.layer.batchDraw();
         this.isPlaying = true;

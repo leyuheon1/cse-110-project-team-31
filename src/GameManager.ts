@@ -106,28 +106,63 @@ export class GameManager {
     imageObj.src = '/background1.jpg';
   }
 
-  private renderCurrentPhase(): void {
+  // ===== CRITICAL FIX: Proper cleanup before phase transitions =====
+  private cleanupCurrentPhase(): void {
+    console.log('🧹 Cleaning up current phase:', GamePhase[this.currentPhase]);
+    
+    // Stop and destroy all animations FIRST
     if (this.currentBakingMinigameInstance) {
+      console.log('  - Cleaning up baking minigame');
       this.currentBakingMinigameInstance.cleanup();
       this.currentBakingMinigameInstance = null;
     }
+    
     if (this.currentCleaningMinigame) {
+      console.log('  - Cleaning up cleaning minigame');
       this.currentCleaningMinigame.cleanup();
       this.currentCleaningMinigame = null;
     }
+    
     if (this.postBakingAnimation) {
+      console.log('  - Destroying post-baking animation');
       this.postBakingAnimation.destroy();
       this.postBakingAnimation = null;
     }
+    
     if (this.newDayAnimation) {
+      console.log('  - Destroying new day animation');
       this.newDayAnimation.destroy();
       this.newDayAnimation = null;
     }
 
-    this.layer.destroyChildren();
+    // Use removeChildren instead of destroyChildren to avoid destroying background
+    const children = this.layer.getChildren().slice(); // Clone array
+    children.forEach(child => {
+      // Don't destroy the background image
+      if (child !== this.backgroundImage) {
+        child.destroy();
+      }
+    });
+    
+    console.log('✅ Cleanup complete');
+  }
 
-    if (this.backgroundImage && this.currentPhase !== GamePhase.LOGIN) {
+  private renderCurrentPhase(): void {
+    console.log('🎮 Rendering phase:', GamePhase[this.currentPhase]);
+    
+    // Clean up before rendering new phase
+    this.cleanupCurrentPhase();
+
+    // Add background if needed (NOT for LOGIN or ANIMATION phases)
+    const skipBackgroundPhases = [
+      GamePhase.LOGIN, 
+      GamePhase.POST_BAKING_ANIMATION, 
+      GamePhase.NEW_DAY_ANIMATION
+    ];
+    
+    if (this.backgroundImage && !skipBackgroundPhases.includes(this.currentPhase)) {
       this.layer.add(this.backgroundImage);
+      this.backgroundImage.moveToBottom();
     }
 
     switch (this.currentPhase) {
@@ -189,6 +224,9 @@ export class GameManager {
       case GamePhase.DAY_SUMMARY:
         this.renderDaySummaryPhase();
         break;
+      case GamePhase.NEW_DAY_ANIMATION:
+        this.renderNewDayAnimation();
+        break;
       case GamePhase.VICTORY:
         this.renderVictoryPhase();
         break;
@@ -208,11 +246,13 @@ export class GameManager {
       onExit: () => {
         this.previousPhase = GamePhase.VICTORY;
         this.currentPhase = GamePhase.LOGIN;
+        this.resetGame(); // Reset game state
         this.renderCurrentPhase();
       },
       onReturnHome: () => {
         this.previousPhase = GamePhase.VICTORY;
         this.currentPhase = GamePhase.HOW_TO_PLAY;
+        this.resetGame(); // Reset game state
         this.renderCurrentPhase();
       },
     });
@@ -225,36 +265,43 @@ export class GameManager {
       onExit: () => {
         this.previousPhase = GamePhase.DEFEAT;
         this.currentPhase = GamePhase.LOGIN;
+        this.resetGame(); // Reset game state
         this.renderCurrentPhase();
       },
       onRetry: () => {
-        if (typeof (this as any).resetForNewRun === 'function') {
-          (this as any).resetForNewRun();
-        }
         this.previousPhase = GamePhase.DEFEAT;
         this.currentPhase = GamePhase.HOW_TO_PLAY;
+        this.resetGame(); // Reset game state
         this.renderCurrentPhase();
       },
     });
   }
 
-  private renderPostBakingAnimation(): void {
-    if (this.postBakingAnimation) {
-      this.postBakingAnimation.destroy();
-    }
+  // ===== NEW: Reset game state =====
+  private resetGame(): void {
+    console.log('Resetting game state');
+    this.player = {
+      username: this.player.username, // Keep username
+      funds: this.config.startingFunds,
+      ingredients: new Map(),
+      breadInventory: [],
+      maxBreadCapacity: this.config.maxBreadCapacity,
+      currentDay: 1,
+      dishesToClean: 0,
+      reputation: 1.0,
+      currentDayDemand: 0,
+    };
+    this.daySales = 0;
+    this.dayExpenses = 0;
+    this.dayTips = 0;
+  }
 
+  private renderPostBakingAnimation(): void {
+    console.log('Starting post-baking animation');
+    
     const IMAGE_PATHS = [
-      '/21.png',
-      '/22.png',
-      '/23.png',
-      '/24.png',
-      '/25.png',
-      '/26.png',
-      '/27.png',
-      '/28.png',
-      '/29.png',
-      '/30.png',
-      '/31.png',
+      '/20.png', '/21.png', '/22.png', '/23.png', '/24.png', '/25.png',
+      '/26.png', '/27.png', '/28.png', '/29.png', '/30.png', '/31.png'
     ];
 
     this.postBakingAnimation = new AnimationPlayer(
@@ -267,7 +314,7 @@ export class GameManager {
       this.stage.height(),
       false,
       () => {
-        this.postBakingAnimation = null;
+        console.log('Post-baking animation complete');
         this.previousPhase = GamePhase.POST_BAKING_ANIMATION;
         this.currentPhase = GamePhase.CLEANING;
         this.renderCurrentPhase();
@@ -277,10 +324,17 @@ export class GameManager {
     this.postBakingAnimation
       .load()
       .then(() => {
-        this.postBakingAnimation?.start();
+        console.log('Post-baking animation loaded, starting playback');
+        // Check if animation still exists (wasn't cleaned up during load)
+        if (this.postBakingAnimation) {
+          this.postBakingAnimation.start();
+        } else {
+          console.warn('Post-baking animation was destroyed during load');
+        }
       })
       .catch((error) => {
-        console.error('Post-baking animation failed to load, skipping to cleaning.', error);
+        console.error('Post-baking animation failed to load:', error);
+        this.postBakingAnimation = null;
         this.previousPhase = GamePhase.POST_BAKING_ANIMATION;
         this.currentPhase = GamePhase.CLEANING;
         this.renderCurrentPhase();
@@ -288,26 +342,12 @@ export class GameManager {
   }
 
   private renderNewDayAnimation(): void {
-    if (this.newDayAnimation) {
-      this.newDayAnimation.destroy();
-    }
-
+    console.log('Starting new day animation');
+    
     const IMAGE_PATHS = [
-      '/33.png',
-      '/34.png',
-      '/35.png',
-      '/36.png',
-      '/37.png',
-      '/38.png',
-      '/39.png',
-      '/40.png',
-      '/41.png',
-      '/42.png',
-      '/43.png',
-      '/44.png',
-      '/44.png',
-      '/44.png',
-      '/44.png',
+      '/33.png', '/34.png', '/35.png', '/36.png', '/37.png', '/38.png',
+      '/39.png', '/40.png', '/41.png', '/42.png', '/43.png', '/44.png',
+      '/44.png', '/44.png', '/44.png'
     ];
 
     this.newDayAnimation = new AnimationPlayer(
@@ -320,7 +360,7 @@ export class GameManager {
       this.stage.height(),
       false,
       () => {
-        this.newDayAnimation = null;
+        console.log('New day animation complete');
         this.previousPhase = GamePhase.NEW_DAY_ANIMATION;
         this.currentPhase = GamePhase.ORDER;
         this.renderCurrentPhase();
@@ -330,10 +370,17 @@ export class GameManager {
     this.newDayAnimation
       .load()
       .then(() => {
-        this.newDayAnimation?.start();
+        console.log(' New day animation loaded, starting playback');
+        // Check if animation still exists (wasn't cleaned up during load)
+        if (this.newDayAnimation) {
+          this.newDayAnimation.start();
+        } else {
+          console.warn('New day animation was destroyed during load');
+        }
       })
       .catch((error) => {
-        console.error('New day animation failed to load, skipping to next day.', error);
+        console.error('New day animation failed to load:', error);
+        this.newDayAnimation = null;
         this.previousPhase = GamePhase.NEW_DAY_ANIMATION;
         this.currentPhase = GamePhase.ORDER;
         this.renderCurrentPhase();
@@ -385,8 +432,6 @@ export class GameManager {
   }
 
   private renderBakingPhase(): void {
-    if (this.currentBakingMinigameInstance) this.currentBakingMinigameInstance.cleanup();
-
     const maxCookiesFromIngredients = this.calculateMaxCookies();
     const cookiesSold = Math.min(maxCookiesFromIngredients, this.player.currentDayDemand);
 
@@ -432,8 +477,6 @@ export class GameManager {
   }
 
   private renderCleaningPhase(): void {
-    if (this.currentCleaningMinigame) this.currentCleaningMinigame.cleanup();
-
     this.currentCleaningMinigame = new CleaningMinigame(
       this.stage,
       this.layer,
@@ -482,9 +525,9 @@ export class GameManager {
         this.previousPhase = this.currentPhase;
 
         if (this.player.funds >= this.config.winThreshold) {
-          this.currentPhase = GamePhase.GAME_OVER;
+          this.currentPhase = GamePhase.VICTORY;
         } else if (this.checkBankruptcy()) {
-          this.currentPhase = GamePhase.GAME_OVER;
+          this.currentPhase = GamePhase.DEFEAT;
         } else {
           this.currentPhase = GamePhase.NEW_DAY_ANIMATION;
         }
@@ -515,7 +558,6 @@ export class GameManager {
 
   private renderGameOverPhase(): void {
     const won = this.player.funds >= this.config.winThreshold;
-
     const titleText = won ? 'YOU WIN!' : 'BANKRUPT!';
     const titleColor = won ? 'green' : 'red';
     const infoText = won
@@ -558,47 +600,5 @@ export class GameManager {
     this.layer.add(finalStats);
 
     this.layer.draw();
-  }
-
-  private createButton(
-    x: number,
-    y: number,
-    text: string,
-    onClick: () => void
-  ): { group: Konva.Group; rect: Konva.Rect; label: Konva.Text } {
-    const group = new Konva.Group({ x, y });
-    const rect = new Konva.Rect({
-      width: 200,
-      height: 50,
-      fill: '#4CAF50',
-      cornerRadius: 5,
-    });
-    const label = new Konva.Text({
-      width: 200,
-      height: 50,
-      text: text,
-      fontSize: 20,
-      fill: 'white',
-      align: 'center',
-      verticalAlign: 'middle',
-      listening: false,
-    });
-    group.add(rect, label);
-
-    rect.on("mouseenter", () => {
-      this.stage.container().style.cursor = "pointer";
-      rect.fill("#45a049");
-      this.layer.batchDraw();
-    });
-    rect.on("mouseleave", () => {
-      this.stage.container().style.cursor = "default";
-      rect.fill("#4CAF50");
-      this.layer.batchDraw();
-    });
-
-    rect.on("click", onClick);
-    rect.on("tap", onClick);
-
-    return { group, rect, label };
   }
 }
