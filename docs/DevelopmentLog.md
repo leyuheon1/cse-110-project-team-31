@@ -19,14 +19,24 @@
 **Nov 1, 2025**
 - Succesfully added Losing and Victory Screens
 
+
 ---
 
 ## Bugs to Fix
 - Reduce size of hitbox for “View Recipe” button.  
 - Display resizing during baking phase causes game reset.  
-- Text clipping on “How to Play” screen with long content.  
+- Expand on How to Play instructions 
 - Image sizing and placement issues on Order Screen.  
-- Implement proper Lose Screen trigger conditions.
+- Screen does not resize in Cleaning minigame screen
+- Exit button doesn't appear in cleaning minigame before starting game screen
+- Baking animation not working
+- Minigame 2 number of problems to solve seems to depend on something, this varies.
+- Fix alignment on minigame
+- Fix timer on minigame1
+- Make animations slower
+- Make tips more visible (how much they have earned) in minigame1
+- Fix timer position in minigame1
+- When buying ingredients store what player have inout so far so it doesn't disappear when they view recipe.
 
 ---
 
@@ -35,18 +45,17 @@
 - Purchase button malfunction during shopping phase.  
 - Cursor cleanup memory leaks.  
 - Ingredient checking logic corrected.
+- Implement proper Lose Screen trigger conditions.
 
 ---
 
 ## Planned Features
 - Display optimizations.  
-- Help button system.  
-- User database for persistent save data.  
-- Login page implementation.  
-- Audio system and background music.  
-- Cookie recipe dedicated screen.  
+- Help/Info button system.   
+- Exit button system  
+- Audio system and background music.    
 - Owl speech bubble on Order Screen.  
-- Win/Lose screen system.
+- Add another animation before cleaning minigame
 
 ---
 
@@ -57,6 +66,9 @@
 - Asynchronous configuration loading from text files.  
 - Real-time ingredient tracking and consumption.  
 - Financial tracking: sales, expenses, profit.
+- Login page implementation.
+- Cookie recipe dedicated screen.
+- Win/Lose screen system.
 
 ---
 
