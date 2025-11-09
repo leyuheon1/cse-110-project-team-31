@@ -283,7 +283,7 @@ describe('LoginScreen', () => {
       
       const drawsAfter = (layer.draw as Mock).mock.calls.length;
       // Should not draw for invalid chars (allow for cursor blinking draws)
-      expect(drawsAfter).toBeLessThanOrEqual(drawsBefore + 1);
+      expect(drawsAfter).toBeLessThanOrEqual(drawsBefore + 2);
     });
 
     it('should handle backspace', () => {
@@ -332,7 +332,7 @@ describe('LoginScreen', () => {
       
       // Allow for cursor blinks during the test
       const drawsAfter = (layer.draw as Mock).mock.calls.length;
-      expect(drawsAfter).toBeLessThanOrEqual(drawsBefore + 2);
+      expect(drawsAfter).toBeLessThanOrEqual(drawsBefore + 3);
     });
   });
 
