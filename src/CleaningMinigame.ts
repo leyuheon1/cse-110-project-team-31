@@ -2,6 +2,7 @@ import Konva from 'konva';
 import { MinigameResult } from './types';
 import { ConfigManager } from './config';
 import { ExitButton } from './ui/ExitButton'; 
+import { InfoButton } from './ui/InfoButton';
 
 export class CleaningMinigame {
     private layer: Konva.Layer;
@@ -283,6 +284,13 @@ export class CleaningMinigame {
             this.cleanup();
             window.location.href = '/login.hmtl'; //go to login page
         });
+
+        //Info Button
+        const infoButton = new InfoButton(
+            this.stage, 
+            this.layer,
+            'Solve as many multiplication problems as you can within the time limit to clean dishes! Type your answer and press ENTER. Each correct answer cleans one dish. Clean all dishes to maximize your reputation!'
+        );
     }
 
     private generateNewProblem(): void {
