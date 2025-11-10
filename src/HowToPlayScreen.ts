@@ -18,17 +18,52 @@ export class HowToPlayScreen {
         const stageHeight = this.stage.height();
 
         // Modal box (responsive)
-        const modal = new Konva.Rect({
-            x: stageWidth * 0.1,
-            y: stageHeight * 0.1,
-            width: stageWidth * 0.8,
-            height: stageHeight * 0.7,
-            fill: '#F5F5DC',
-            stroke: '#FFD700',
-            strokeWidth: 8,
-            cornerRadius: 20
+        // Paper-like modal (shadow + subtle highlight + crease)
+        const modalX = stageWidth * 0.1;
+        const modalY = stageHeight * 0.1;
+        const modalW = stageWidth * 0.8;
+        const modalH = stageHeight * 0.7;
+
+        const modalGroup = new Konva.Group();
+
+        const paper = new Konva.Rect({
+            x: modalX,
+            y: modalY,
+            width: modalW,
+            height: modalH,
+            cornerRadius: 26,
+            fill: '#F5F1E8',          // 比纯白更像纸
+            stroke: '#E8E1C9',        // 很淡的纸边
+            strokeWidth: 3,
+            shadowColor: 'rgba(0,0,0,0.35)',
+            shadowBlur: 20,
+            shadowOffset: { x: 0, y: 12 },
+            shadowOpacity: 0.35
         });
-        this.layer.add(modal);
+
+        const highlight = new Konva.Rect({
+            x: modalX,
+            y: modalY,
+            width: modalW,
+            height: modalH,
+            cornerRadius: 26,
+            listening: false,
+            fillLinearGradientStartPoint: { x: 0, y: 0 },
+            fillLinearGradientEndPoint:   { x: 0, y: modalH },
+            fillLinearGradientColorStops: [0, 'rgba(255,255,255,0.55)', 1, 'rgba(255,255,255,0)'],
+            opacity: 0.6
+        });
+
+        const crease = new Konva.Line({
+            points: [modalX + 16, modalY + modalH * 0.45, modalX + modalW - 16, modalY + modalH * 0.45],
+            stroke: 'rgba(0,0,0,0.08)',
+            strokeWidth: 2,
+            listening: false
+        });
+
+        modalGroup.add(paper, highlight, crease);
+        this.layer.add(modalGroup);
+
 
         // Title (responsive)
         const title = new Konva.Text({
@@ -36,7 +71,7 @@ export class HowToPlayScreen {
             y: stageHeight * 0.13,
             width: stageWidth * 0.8,
             text: 'HOW TO PLAY',
-            fontSize: Math.min(stageWidth * 0.04, 48),
+            fontSize: Math.min(stageWidth * 0.088, 48),
             fontStyle: 'bold',
             fill: 'black',
             align: 'center'
@@ -84,11 +119,12 @@ export class HowToPlayScreen {
                 width: textBoxWidth,
                 height: textBoxHeight,
                 text: text,
-                fontSize: Math.min(stageWidth * 0.015, 18),  // Responsive font size
+                fontSize: Math.min(stageWidth * 0.04, 25),  // Responsive font size
                 fill: 'black',
                 lineHeight: 1.5,
                 wrap: 'word',
-                ellipsis: false
+                ellipsis: false, 
+                align: 'center'
             });
             
             this.layer.add(instructions)

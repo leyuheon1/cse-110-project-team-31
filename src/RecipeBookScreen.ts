@@ -1,12 +1,16 @@
+// src/RecipeBookScreen.ts
 import Konva from 'konva';
+import { ExitButton } from './ui/ExitButton'; 
 
 export class RecipeBookScreen {
     private layer: Konva.Layer;
     private stage: Konva.Stage;
     private onClose: () => void;
     private ingredients: Map<string, number>;
+    private bookGroup: Konva.Group;
+    private exitButtonInstance: ExitButton | null = null; 
 
-    // --- MODIFIED: New Recipe ---
+    // The ingredients needed for one cookie
     private recipe: Map<string, number> = new Map([
         ['Flour', 3],
         ['Sugar', 1],
@@ -14,6 +18,8 @@ export class RecipeBookScreen {
         ['Chocolate', 1],
         ['Baking Soda', 2]
     ]);
+
+    // --- REMOVED: ingredientPrices map ---
 
     constructor(
         stage: Konva.Stage,
@@ -24,73 +30,125 @@ export class RecipeBookScreen {
         this.stage = stage;
         this.layer = layer;
         this.ingredients = playerIngredients;
-        this.onClose = onClose; // This callback now leads back to Shopping
+        this.onClose = onClose;
+        this.bookGroup = new Konva.Group();
+        this.layer.add(this.bookGroup);
         this.setupUI();
     }
+
+    // --- REMOVED: formatPrice function ---
 
     private setupUI(): void {
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
 
-        // Modal box
-        const modal = new Konva.Rect({
-            x: stageWidth * 0.1,
-            y: stageHeight * 0.1,
-            width: stageWidth * 0.8,
-            height: stageHeight * 0.8,
-            fill: '#F5F5DC',
-            stroke: '#003049',
-            strokeWidth: 8,
-            cornerRadius: 20
-        });
-        this.layer.add(modal);
+        // --- 1. Paper Modal ---
+        const modalW = stageWidth * 0.7;
+        const modalH = stageHeight * 0.8;
+        const modalX = (stageWidth - modalW) / 2;
+        const modalY = (stageHeight - modalH) / 2;
 
-        // Title
-        const title = new Konva.Text({
-            x: stageWidth * 0.1,
-            y: stageHeight * 0.13,
-            width: stageWidth * 0.8,
-            text: 'SECRET FAMILY RECIPE',
-            fontSize: Math.min(stageWidth * 0.04, 48),
-            fontStyle: 'bold',
-            fill: '#003049',
-            align: 'center'
+        const paper = new Konva.Rect({
+            x: modalX,
+            y: modalY,
+            width: modalW,
+            height: modalH,
+            fill: '#F5F1E8',
+            cornerRadius: 15,
+            shadowColor: 'rgba(0,0,0,0.5)',
+            shadowBlur: 20,
+            shadowOffset: { x: 5, y: 10 },
+            shadowOpacity: 0.5
         });
-        this.layer.add(title);
+        this.bookGroup.add(paper);
 
-        // Sub-header for the recipe
-        const subHeader = new Konva.Text({
-            x: stageWidth * 0.1,
-            y: stageHeight * 0.22,
-            width: stageWidth * 0.8,
-            text: 'Ingredients per Cookie:',
-            fontSize: Math.min(stageWidth * 0.02, 22),
-            fontStyle: 'bold',
-            fill: '#333',
-            align: 'center'
-        });
-        this.layer.add(subHeader);
+        // --- 2. Punched Holes ---
+        const holeRadius = modalH * 0.02;
+        const holeMarginX = modalX + modalW * 0.06;
+        const holeStartY = modalY + modalH * 0.15;
+        const holeSpacing = modalH * 0.12;
+
+        for (let i = 0; i < 6; i++) {
+            this.bookGroup.add(new Konva.Circle({
+                x: holeMarginX,
+                y: holeStartY + (i * holeSpacing),
+                radius: holeRadius,
+                fill: '#dbe9f4',
+                opacity: 0.8
+            }));
+        }
         
-        // --- MODIFIED: Column Headers ---
-        const header = new Konva.Text({
-            x: stageWidth * 0.15,
-            y: stageHeight * 0.30,
-            width: stageWidth * 0.7,
-            text: 'INGREDIENT          NEEDED       YOU HAVE',
-            fontSize: Math.min(stageWidth * 0.02, 22),
+        // --- 3. Fold Lines ---
+        this.bookGroup.add(new Konva.Line({
+            points: [modalX, modalY + modalH / 2, modalX + modalW, modalY + modalH / 2],
+            stroke: 'rgba(0,0,0,0.08)',
+            strokeWidth: 1,
+            dash: [10, 5]
+        }));
+        this.bookGroup.add(new Konva.Line({
+            points: [modalX + modalW / 2, modalY, modalX + modalW / 2, modalY + modalH],
+            stroke: 'rgba(0,0,0,0.08)',
+            strokeWidth: 1,
+            dash: [10, 5]
+        }));
+
+        // --- 4. Title ---
+        const title = new Konva.Text({
+            x: modalX,
+            y: modalY + modalH * 0.05,
+            width: modalW,
+            text: "Owl's Top-Secret Recipe",
+            fontSize: Math.min(stageWidth * 0.035, 48),
             fontStyle: 'bold',
+            fontFamily: '"Georgia", serif',
             fill: '#333',
-            fontFamily: 'monospace'
+            align: 'center'
         });
-        this.layer.add(header);
+        this.bookGroup.add(title);
+        
+        // --- 5. Data Content (3 Columns) ---
+        const contentLeftMargin = modalX + modalW * 0.2;
+        const contentWidth = modalW * 0.75; 
+        const baseFontSize = Math.min(stageWidth * 0.015, 20);
 
-        let currentY = stageHeight * 0.36;
+        // Define column widths for 3-column layout
+        const col1Width = contentWidth * 0.5; // GOODIES
+        const col3Width = contentWidth * 0.25; // NEED
+        const col4Width = contentWidth * 0.25; // GOT
 
-        // --- MODIFIED: Loop to display units ---
+        // Define column start positions
+        const col1X = contentLeftMargin;
+        // --- col2X REMOVED ---
+        const col3X = col1X + col1Width;
+        const col4X = col3X + col3Width;
+        
+        const headerY = modalY + modalH * 0.22;
+
+        // Headers
+        this.bookGroup.add(new Konva.Text({
+            x: col1X, y: headerY, text: 'GOODIES',
+            fontSize: baseFontSize, fontStyle: 'bold', fill: '#555', fontFamily: 'Arial, sans-serif'
+        }));
+        // --- COST Header REMOVED ---
+        this.bookGroup.add(new Konva.Text({
+            x: col3X, y: headerY, text: 'NEED',
+            fontSize: baseFontSize, fontStyle: 'bold', fill: '#555', fontFamily: 'Arial, sans-serif',
+            width: col3Width, align: 'right'
+        }));
+        this.bookGroup.add(new Konva.Text({
+            x: col4X, y: headerY, text: 'GOT',
+            fontSize: baseFontSize, fontStyle: 'bold', fill: '#555', fontFamily: 'Arial, sans-serif',
+            width: col4Width, align: 'right'
+        }));
+
+        let currentY = modalY + modalH * 0.30;
+
+        // Recipe Data Loop
         this.recipe.forEach((needed, ingredient) => {
             const has = this.ingredients.get(ingredient) || 0;
+            const hasColor = has >= needed ? '#27ae60' : '#e74c3c';
+            // --- price logic REMOVED ---
 
-            // Add units to the ingredient name for display
             let ingredientDisplay = ingredient;
             if (ingredient === 'Flour') ingredientDisplay = 'Flour (cups)';
             else if (ingredient === 'Sugar') ingredientDisplay = 'Sugar (cups)';
@@ -98,45 +156,52 @@ export class RecipeBookScreen {
             else if (ingredient === 'Chocolate') ingredientDisplay = 'Chocolate (cups)';
             else if (ingredient === 'Baking Soda') ingredientDisplay = 'Baking Soda (tsp)';
 
-            const line = new Konva.Text({
-                x: stageWidth * 0.15,
-                y: currentY,
-                width: stageWidth * 0.7,
-                text: `${ingredientDisplay.padEnd(20)} ${String(needed).padStart(5)} ${String(has).padStart(12)}`,
-                fontSize: Math.min(stageWidth * 0.02, 22),
-                fill: 'black',
-                fontFamily: 'monospace'
-            });
-            this.layer.add(line);
+            // Col 1: Ingredient Name
+            this.bookGroup.add(new Konva.Text({
+                x: col1X, y: currentY, text: ingredientDisplay,
+                fontSize: baseFontSize, fill: 'black', fontFamily: 'Arial, sans-serif'
+            }));
+            
+            // --- Col 2: Price REMOVED ---
+
+            // Col 3: Needed Amount
+            this.bookGroup.add(new Konva.Text({
+                x: col3X, y: currentY, text: String(needed),
+                fontSize: baseFontSize, fill: 'black', fontFamily: 'Arial, sans-serif',
+                width: col3Width, align: 'right'
+            }));
+            
+            // Col 4: You Have Amount
+            this.bookGroup.add(new Konva.Text({
+                x: col4X, y: currentY, text: String(has),
+                fontSize: baseFontSize, fill: hasColor, fontStyle: 'bold', fontFamily: 'Arial, sans-serif',
+                width: col4Width, align: 'right'
+            }));
+            
             currentY += stageHeight * 0.06;
         });
 
-        // Change the button to a "BACK" button
-        this.createBackButton(stageWidth, stageHeight);
-        this.layer.draw();
-    }
-
-    private createBackButton(stageWidth: number, stageHeight: number): void {
+        // --- 7. "BUY INGREDIENTS" Button ---
         const buttonWidth = Math.min(stageWidth * 0.25, 300);
         const buttonHeight = Math.min(stageHeight * 0.08, 60);
 
         const buttonGroup = new Konva.Group({
-            x: (stageWidth - buttonWidth) / 2,
-            y: stageHeight * 0.8
+            x: modalX + (modalW - buttonWidth) / 2,
+            y: modalY + modalH - buttonHeight - (modalH * 0.05),
         });
 
         const rect = new Konva.Rect({
             width: buttonWidth,
             height: buttonHeight,
-            fill: '#d62828', // Red "back" color
+            fill: '#d62828', // Red color
             cornerRadius: 10
         });
 
         const text = new Konva.Text({
             width: buttonWidth,
             height: buttonHeight,
-            text: 'BACK', // Changed text
-            fontSize: Math.min(stageWidth * 0.022, 28),
+            text: 'BUY INGREDIENTS',
+            fontSize: Math.min(stageWidth * 0.022, 24),
             fill: 'white',
             align: 'center',
             verticalAlign: 'middle',
@@ -145,23 +210,38 @@ export class RecipeBookScreen {
 
         buttonGroup.add(rect);
         buttonGroup.add(text);
-
-        buttonGroup.on('click', this.onClose); // Still uses the onClose callback
+        buttonGroup.on('click', this.onClose); 
         buttonGroup.on('mouseenter', () => {
             this.stage.container().style.cursor = 'pointer';
-            rect.fill('#f77f00'); // Hover color
+            rect.fill('#f77f00'); // Orange hover
             this.layer.draw();
         });
         buttonGroup.on('mouseleave', () => {
             this.stage.container().style.cursor = 'default';
-            rect.fill('#d62828');
+            rect.fill('#d62828'); // Red
             this.layer.draw();
         });
 
-        this.layer.add(buttonGroup);
-    }
+        this.bookGroup.add(buttonGroup);
 
+        // --- 8. Global Exit Button ---
+        this.exitButtonInstance = new ExitButton(this.stage, this.layer, () => {
+            this.cleanup();
+            window.location.href = '/login.hmtl';
+        });
+
+        // --- 9. Final Draw ---
+        this.layer.draw();
+    }
+    
     public cleanup(): void {
-        // No listeners to remove
+        if (this.bookGroup) {
+            this.bookGroup.destroy();
+        }
+        
+        if (this.exitButtonInstance) {
+            this.exitButtonInstance.destroy();
+            this.exitButtonInstance = null;
+        }
     }
 }

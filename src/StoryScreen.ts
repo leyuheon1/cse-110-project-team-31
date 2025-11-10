@@ -8,36 +8,46 @@ export class StoryScreen {
 
     const bgSrc = "/Storyline.png";
 
-    // Box
-    const boxX = 145;
-    const boxY = 106;
-    const boxWidth = 1179;
-    const boxHeight = 217;
+    // Responsive Constants
+    const stageWidth = stage.width();
+    const stageHeight = stage.height();
+
+    // Box Dimensions
+    const boxRatioWidth = 0.8;
+    const boxRatioHeight = 0.2;
+    const boxWidth = stageWidth * boxRatioWidth;
+    const boxHeight = stageHeight * boxRatioHeight;
+
+    // Calculate Centering
+    const boxX = (stageWidth - boxWidth) / 2;
+    const boxY = stageHeight * 0.15;
+
+    // Box Style
     const boxFill = "white";
     const boxStroke = "black";
     const boxStrokeWidth = 2;
     const boxCornerRadius = 10;
 
     // Text
-    const textX = 190;
-    const textY = 150;
-    const textWidth = 1073;
-    const textHeight = 227;
-    const textFontSize = 24;
-    const textFontFamily = "Tilt Warp";
+    const textPadding = boxWidth * 0.05;
+    const textX = boxX + textPadding;
+    const textY = boxY + boxHeight * 0.2;
+    const textWidth = boxWidth - (textPadding * 2);
+    const textFontSize = Math.min(stageWidth * 0.015, 16);
+    const textFontFamily = "Press Start 2P"; // ** Changed font to a loaded font **
     const textFontStyle = "bold";
     const username = localStorage.getItem("username");
-    const fullText = `Today is a sad day for Owl. He lost his job. Owl is thinking of making cookies from his new home, the trailer park. ${username}, please help the Owl get back on his feet by baking some cookies.`;
+    const fullText = `Today is a sad day for Owl. He lost his job. Owl is thinking of making cookies from his new home, the trailer park. ${username}, please help Owl get back on his feet by baking some cookies.`;
 
-    // Button
-    const buttonX = 596;
-    const buttonY = 222;
-    const buttonWidth = 270;
-    const buttonHeight = 65;
+    // Button ** ADDED CENTERING **
+    const buttonWidth = Math.min(stageWidth * 0.4, 250);
+    const buttonHeight = Math.min(stageHeight * 0.05, 150);
+    const buttonX = (stageWidth - buttonWidth) / 2;
+    const buttonY = boxY + boxHeight * 0.65;
     const buttonFill = "#F77F00";
     const buttonText = "HELP OWL!";
-    const buttonTextFontFamily = "Tilt Warp";
-    const buttonTextFontSize = 48;
+    const buttonTextFontFamily = textFontFamily;
+    const buttonTextFontSize = 24;
     const buttonTextFill = "white";
     const buttonShadowColor = "black";
     const buttonShadowBlurDefault = 10;
@@ -87,7 +97,9 @@ export class StoryScreen {
         x: textX,
         y: textY,
         width: textWidth,
-        height: textHeight,
+        height: boxHeight * 0.6,
+        align: 'center', // ** ADDED CENTERING **
+        lineHeight: 1.5, // ** ADDED LINE HEIGHT **
         fontSize: textFontSize,
         fontFamily: textFontFamily,
         fontStyle: textFontStyle,

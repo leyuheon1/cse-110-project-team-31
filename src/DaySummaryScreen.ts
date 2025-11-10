@@ -1,5 +1,6 @@
 import Konva from 'konva';
 import { ExitButton } from './ui/ExitButton';
+import { InfoButton } from './ui/InfoButton';
 
 export class DaySummaryScreen {
     private layer: Konva.Layer;
@@ -42,6 +43,12 @@ export class DaySummaryScreen {
             // Once owl loads, add receipt + button
             this.createReceiptGroup(stageWidth, stageHeight);
             this.createContinueButton(stageWidth, stageHeight);
+        });
+
+        //Exit Button
+        const exitButton = new ExitButton(this.stage, this.layer, () => {
+            this.cleanup();
+            window.location.href = '/login.hmtl'; //go to login page
         });
     }
 
@@ -259,6 +266,9 @@ export class DaySummaryScreen {
             this.cleanup();
             window.location.href = '/login.html'; //go to login page
         });
+
+        //Info Button
+        const infoButton = new InfoButton(this.stage, this.layer);
         
         this.layer.draw();
     }

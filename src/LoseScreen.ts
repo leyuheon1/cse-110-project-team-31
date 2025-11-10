@@ -54,6 +54,7 @@ export class LoseScreen {
       y: stageHeight * 0.25,
       width: stageWidth * 0.7,
       text:
+        `The money isn’t enough to afford the ingredients for a single cookie\n` +
         `Cash Balance: $${this.opts.cashBalance.toFixed(2)}\n` +
         `Total Days Played: ${this.opts.totalDaysPlayed}\n\n`,
       fontSize: Math.min(stageWidth * 0.04, 30),
