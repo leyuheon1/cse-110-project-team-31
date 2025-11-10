@@ -3,6 +3,7 @@ import { MinigameResult } from './types';
 import { ConfigManager } from './config';
 import { AnimationPlayer } from './AnimationPlayer'; 
 import { ExitButton } from './ui/ExitButton';
+import { InfoButton } from './ui/InfoButton';
 
 export class BakingMinigame {
     private layer: Konva.Layer;
@@ -169,6 +170,13 @@ export class BakingMinigame {
             this.cleanup();
             window.location.href = '/login.hmtl'; //go to login page
         });
+
+        //Info Button
+        const infoButton = new InfoButton(
+            this.stage, 
+            this.layer,
+            'Solve as many division problems as you can within the time limit to earn bonus tips! Type your answer and press ENTER. Each correct answer gives you $1 tip. Good luck!'
+        );
     }
     
     // --- THIS IS THE VISUAL FIX ---

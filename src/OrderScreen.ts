@@ -1,5 +1,6 @@
 import Konva from 'konva';
 import { ExitButton } from './ui/ExitButton';
+import { InfoButton } from './ui/InfoButton';
 
 export class OrderScreen {
     private layer: Konva.Layer;
@@ -48,6 +49,9 @@ export class OrderScreen {
             this.cleanup();
             window.location.href = '/login.hmtl'; //go to login page
         });
+
+        //Info Button
+        const infoButton = new InfoButton(this.stage, this.layer);
 
         this.layer.draw(); 
     }
