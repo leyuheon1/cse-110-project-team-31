@@ -30,19 +30,29 @@ export class CleaningMinigame {
     private keyboardHandler: (e: KeyboardEvent) => void;
 
     private totalDishesToClean: number;
+    private originalTotalDishes: number; // <--- ADDED: To remember the real amount
     private dishesCleaned: number = 0;
+
+    // --- CONSTANTS ---
+    private readonly TARGET_DISHES = 5;
 
     constructor(
         stage: Konva.Stage, 
         layer: Konva.Layer,
-        totalDishesToClean: number,
+        totalDishesToClean: number, 
         onComplete: (result: MinigameResult, skipped: boolean) => void 
     ) {
         this.stage = stage;
         this.layer = layer;
-        this.totalDishesToClean = totalDishesToClean;
+        
+        // Store the REAL total so we can report it back later
+        this.originalTotalDishes = totalDishesToClean; 
+        
+        // Internally, we only care about the target 5
+        this.totalDishesToClean = this.TARGET_DISHES;
+        
         this.onComplete = onComplete;
-        this.timeRemaining = this.config.cleaningTime;
+        this.timeRemaining = 15;
         
         this.keyboardHandler = this.handleKeyPress.bind(this);
         
@@ -54,7 +64,6 @@ export class CleaningMinigame {
         this.showPlaySkipChoice();
     }
 
-    // --- THIS METHOD IS UPDATED ---
     private showPlaySkipChoice(): void {
         this.choiceUIGroup.destroyChildren();
         const stageWidth = this.stage.width();
@@ -62,16 +71,16 @@ export class CleaningMinigame {
         const stage = this.stage;
 
         const modalWidth = stageWidth * 0.7;
-        const modalHeight = stageHeight * 0.65; // Slightly taller for more text
+        const modalHeight = stageHeight * 0.65; 
         const modalX = (stageWidth - modalWidth) / 2;
         const modalY = (stageHeight - modalHeight) / 2;
 
         const modalBg = new Konva.Rect({
             x: modalX, y: modalY, width: modalWidth, height: modalHeight,
-            fill: '#FFFFFF', // <-- CHANGED
-            cornerRadius: 15, // <-- CHANGED
-            stroke: '#da5552', // <-- CHANGED
-            strokeWidth: 4, // <-- CHANGED
+            fill: '#FFFFFF', 
+            cornerRadius: 15, 
+            stroke: '#da5552', 
+            strokeWidth: 4, 
             shadowColor: 'black', shadowBlur: 10, shadowOpacity: 0.3, shadowOffset: {x: 3, y: 3}
         });
         this.choiceUIGroup.add(modalBg);
@@ -80,8 +89,8 @@ export class CleaningMinigame {
             x: modalX, y: modalY + modalHeight * 0.1, width: modalWidth,
             text: 'CLEAN UP TIME!', 
             fontSize: Math.min(stageWidth * 0.04, 40), 
-            fontFamily: '"Press Start 2P"', // <-- CHANGED
-            fill: '#008B8B', // Kept original teal color for theme
+            fontFamily: '"Press Start 2P"', 
+            fill: '#008B8B', 
             align: 'center', 
             shadowColor: 'white', shadowBlur: 2, shadowOffset: {x: 1, y: 1}
         });
@@ -89,15 +98,15 @@ export class CleaningMinigame {
 
         const explainText = new Konva.Text({
             x: modalX + modalWidth * 0.1, 
-            y: titleText.y() + titleText.height() + modalHeight * 0.05, // <-- CHANGED
+            y: titleText.y() + titleText.height() + modalHeight * 0.05, 
             width: modalWidth * 0.8,
-            text: `You have ${this.totalDishesToClean} dishes to clean from today's sales. This choice affects your reputation!\n\nPLAY: Cleaning boosts your reputation, leading to more customers tomorrow. A perfect job gives an extra boost!\n\nSKIP: Customers get sick! This badly hurts your reputation (fewer customers) and you receive a $50 fine.`,
-            fontSize: Math.min(stageWidth * 0.022, 26), // <-- CHANGED (made bigger)
+            text: `You have ${this.originalTotalDishes} dishes to clean from today's sales. This choice affects your reputation!\n\nPLAY: Cleaning boosts your reputation. Solve 5 problems to finish!\n\nSKIP: Customers get sick! This badly hurts your reputation and you receive a fine.`,
+            fontSize: Math.min(stageWidth * 0.022, 26), 
             fill: '#333', 
             align: 'center', 
-            lineHeight: 1.6, // <-- CHANGED
-            fontFamily: '"Nunito"', // <-- CHANGED
-            fontStyle: 'bold' // <-- CHANGED
+            lineHeight: 1.6, 
+            fontFamily: '"Nunito"', 
+            fontStyle: 'bold' 
         });
         this.choiceUIGroup.add(explainText);
 
@@ -105,10 +114,9 @@ export class CleaningMinigame {
         const playButtonHeight = modalHeight * 0.15;
         const playButtonX = modalX + modalWidth * 0.3 - playButtonWidth / 2; 
         
-        // <-- CHANGED: Button Y is now dynamic
         const playButtonY = explainText.y() + explainText.height() + modalHeight * 0.08;
  
-        const playButtonGroup = new Konva.Group({ x: playButtonX, y: playButtonY }); // <-- CHANGED 
+        const playButtonGroup = new Konva.Group({ x: playButtonX, y: playButtonY }); 
         const playRect = new Konva.Rect({
             width: playButtonWidth, height: playButtonHeight, fill: '#90EE90',
             cornerRadius: 10, stroke: '#2E8B57', strokeWidth: 3,
@@ -131,9 +139,9 @@ export class CleaningMinigame {
         const skipButtonWidth = playButtonWidth;
         const skipButtonHeight = playButtonHeight;
         const skipButtonX = modalX + modalWidth * 0.7 - skipButtonWidth / 2; 
-        const skipButtonY = playButtonY; // <-- CHANGED (to match play button Y)
+        const skipButtonY = playButtonY; 
 
-        const skipButtonGroup = new Konva.Group({ x: skipButtonX, y: skipButtonY }); // <-- CHANGED
+        const skipButtonGroup = new Konva.Group({ x: skipButtonX, y: skipButtonY }); 
         const skipRect = new Konva.Rect({
             width: skipButtonWidth, height: skipButtonHeight, fill: '#F08080',
             cornerRadius: 10, stroke: '#CD5C5C', strokeWidth: 3,
@@ -167,9 +175,6 @@ export class CleaningMinigame {
         this.layer.batchDraw();
     }
 
-    // This is the UI for the minigame itself, not the popup
-    // As I mentioned before, this part uses static pixel values
-    // It will not be responsive like the popups
     private setupUI(): void {
         const title = new Konva.Text({
             x: 50,
@@ -181,9 +186,10 @@ export class CleaningMinigame {
         });
         this.minigameUIGroup.add(title);
 
+        // Timer shifted down to avoid overlap
         this.timerText = new Konva.Text({
             x: 1400,
-            y: 30,
+            y: 100, 
             text: `Time: ${this.timeRemaining}s`,
             fontSize: 24,
             fill: '#27ae60',
@@ -279,17 +285,15 @@ export class CleaningMinigame {
         });
         this.minigameUIGroup.add(dirtyDishesText);
 
-        //Exit Button
         const exitButton = new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
-            window.location.href = '/login.hmtl'; //go to login page
+            window.location.href = '/login.hmtl'; 
         });
 
-        //Info Button
         const infoButton = new InfoButton(
             this.stage, 
             this.layer,
-            'Solve as many multiplication problems as you can within the time limit to clean dishes! Type your answer and press ENTER. Each correct answer cleans one dish. Clean all dishes to maximize your reputation!'
+            'Solve as many multiplication problems as you can within the time limit to clean dishes! Type your answer and press ENTER. Each correct answer cleans one dish. Clean all 5 dishes to maximize your reputation!'
         );
     }
 
@@ -341,6 +345,7 @@ export class CleaningMinigame {
             this.showFeedback('Clean! ✓', '#27ae60');
             
             if (this.dishesCleaned >= this.totalDishesToClean) {
+                this.updateScore(); 
                 setTimeout(() => {
                     this.endMinigame(false); 
                 }, 500);
@@ -391,6 +396,7 @@ export class CleaningMinigame {
         }, 1000);
     }
 
+    // --- UPDATED METHOD ---
     private endMinigame(skipped: boolean = false): void {
         if (this.timerInterval !== null) {
             clearInterval(this.timerInterval);
@@ -399,8 +405,17 @@ export class CleaningMinigame {
 
         window.removeEventListener('keydown', this.keyboardHandler);
 
+        // MAGIC TRICK:
+        // If you finished the 5 dishes successfully, we report the REAL ORIGINAL total
+        // so the game thinks you did 100% of the work.
+        let finalReportedAnswers = this.correctAnswers;
+        
+        if (!skipped && this.dishesCleaned >= this.TARGET_DISHES) {
+             finalReportedAnswers = this.originalTotalDishes;
+        }
+
         const result: MinigameResult = {
-            correctAnswers: this.correctAnswers, 
+            correctAnswers: finalReportedAnswers, 
             totalProblems: this.totalProblems,
             timeRemaining: 0
         };
