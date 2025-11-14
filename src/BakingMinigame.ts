@@ -175,7 +175,7 @@ export class BakingMinigame {
         const infoButton = new InfoButton(
             this.stage, 
             this.layer,
-            'Solve as many division problems as you can within the time limit to earn bonus tips! Type your answer and press ENTER. Each correct answer gives you $1 tip. Good luck!'
+            'Solve as many division problems as you can within the time limit to earn bonus tips! \n\nType your answer and press ENTER. \n\nEach correct answer gives you $1 tip. \nGood luck!'
         );
     }
     

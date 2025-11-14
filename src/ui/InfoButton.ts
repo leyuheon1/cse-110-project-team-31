@@ -80,7 +80,7 @@ export class InfoButton {
 			instructions = this.customText;
 		} else {
 			try {
-				const response = await fetch("/howtoplay.txt");
+				const response = await fetch("/howtoplaypopup.txt");
 				instructions = await response.text();
 			} catch (error) {
 				instructions = "Instructions could not be loaded.";
@@ -114,6 +114,7 @@ export class InfoButton {
 			width: modalWidth,
 			text: "How to Play",
 			fontSize: Math.min(stageWidth * 0.035, 36),
+			fontFamily: "Press Start 2P",
 			fontStyle: "bold",
 			fill: "#2c3e50",
 			align: "center",
@@ -126,6 +127,7 @@ export class InfoButton {
 			width: modalWidth - 80,
 			text: instructions,
 			fontSize: Math.min(stageWidth * 0.02, 22),
+			fontFamily: "VT323, monospace",
 			fill: "#2c3e50",
 			align: "left",
 			lineHeight: 1.4,
