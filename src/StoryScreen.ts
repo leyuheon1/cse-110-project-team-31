@@ -161,7 +161,7 @@ export class StoryScreen {
             tag.shadowOffset(buttonShadowOffsetHover);
             layer.draw();
           });
-
+          
           button.on("mouseleave", function () {
             stage.container().style.cursor = cursorDefault;
             const tag = this.getChildren()[0] as Konva.Tag;
@@ -175,7 +175,7 @@ export class StoryScreen {
             onComplete();
           });
         }
-      }, 10);
+      }, 50);
     };
 
     image.src = bgSrc;

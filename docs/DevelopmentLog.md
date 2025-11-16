@@ -19,6 +19,17 @@
 **Nov 1, 2025**
 - Succesfully added Losing and Victory Screens
 
+**Nov 5, 2025**
+- Succesfully added Exit button in UI so that player can exit game anytime.
+- Completed UI for demand and end of day summary pages
+- Added a new day animation
+
+**Nov 6, 2025**
+- Added storyline of the game
+
+**Nov 10, 2025**
+- Added Info button to access instuctions throughout the game
+
 
 ---
 

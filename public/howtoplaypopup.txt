@@ -1,9 +1,8 @@
-    At the start of each day, Owl receives a new order list showing how many cookies each customer wants to buy.
+    Owl receives a new order list showing how many cookies each customer wants to buy.
     Your goal is to figure out how much of each ingredient you'll need to bake the correct number of cookies.
 
 Tips for Succes:
-    - Read the order list carefully, every number of orders matter!
+    - Read the order list carfully, every number matters!
     - Calculate the total ingredients needed before you start buying your ingredients.
 
 Note: For the best experience, play in full screen mode so you can clearly see the full gameplay.
-When you're ready, hit Start Game and show off your baking and math skills!

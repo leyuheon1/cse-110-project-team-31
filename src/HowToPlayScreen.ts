@@ -71,8 +71,9 @@ export class HowToPlayScreen {
             y: stageHeight * 0.13,
             width: stageWidth * 0.8,
             text: 'HOW TO PLAY',
-            fontSize: Math.min(stageWidth * 0.088, 48),
+            fontSize: Math.min(stageWidth * 0.08, 40),
             fontStyle: 'bold',
+            fontFamily: 'Press Start 2P',
             fill: 'black',
             align: 'center'
         });
@@ -119,12 +120,13 @@ export class HowToPlayScreen {
                 width: textBoxWidth,
                 height: textBoxHeight,
                 text: text,
-                fontSize: Math.min(stageWidth * 0.04, 25),  // Responsive font size
+                fontSize: Math.min(stageWidth * 0.02, 20),  // Responsive font size
+                fontFamily: 'VT323, monospace',
                 fill: 'black',
                 lineHeight: 1.5,
                 wrap: 'word',
                 ellipsis: false, 
-                align: 'center'
+                align: 'left'
             });
             
             this.layer.add(instructions)
