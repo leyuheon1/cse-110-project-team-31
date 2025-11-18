@@ -14,13 +14,13 @@ export class StoryScreen {
 
     // Box Dimensions
     const boxRatioWidth = 0.8;
-    const boxRatioHeight = 0.2;
+    const boxRatioHeight = 0.35;
     const boxWidth = stageWidth * boxRatioWidth;
     const boxHeight = stageHeight * boxRatioHeight;
 
     // Calculate Centering
     const boxX = (stageWidth - boxWidth) / 2;
-    const boxY = stageHeight * 0.15;
+    const boxY = stageHeight * 0.12;
 
     // Box Style
     const boxFill = "white";
@@ -31,17 +31,17 @@ export class StoryScreen {
     // Text
     const textPadding = boxWidth * 0.05;
     const textX = boxX + textPadding;
-    const textY = boxY + boxHeight * 0.2;
+    const textY = boxY + boxHeight * 0.12;
     const textWidth = boxWidth - (textPadding * 2);
-    const textFontSize = Math.min(stageWidth * 0.015, 16);
+    const textFontSize = Math.min(stageWidth * 0.015, 18);
     const textFontFamily = "Press Start 2P"; // ** Changed font to a loaded font **
     const textFontStyle = "bold";
     const username = localStorage.getItem("username");
     const fullText = `Today is a sad day for Owl. He lost his job. Owl is thinking of making cookies from his new home, the trailer park. ${username}, please help Owl get back on his feet by baking some cookies.`;
 
     // Button ** ADDED CENTERING **
-    const buttonWidth = Math.min(stageWidth * 0.4, 250);
-    const buttonHeight = Math.min(stageHeight * 0.05, 150);
+    const buttonWidth = Math.min(stageWidth * 0.45, 250);
+    const buttonHeight = Math.min(stageHeight * 0.1, 150);
     const buttonX = (stageWidth - buttonWidth) / 2;
     const buttonY = boxY + boxHeight * 0.65;
     const buttonFill = "#F77F00";
@@ -157,8 +157,10 @@ export class StoryScreen {
           button.on("mouseenter", function () {
             stage.container().style.cursor = cursorPointer;
             const tag = this.getChildren()[0] as Konva.Tag;
+
             tag.shadowBlur(buttonShadowBlurHover);
             tag.shadowOffset(buttonShadowOffsetHover);
+            tag.fill("#fcbf49");
             layer.draw();
           });
           
@@ -167,6 +169,8 @@ export class StoryScreen {
             const tag = this.getChildren()[0] as Konva.Tag;
             tag.shadowBlur(buttonShadowBlurDefault);
             tag.shadowOffset(buttonShadowOffsetDefault);
+            tag.fill("#F77F00");
+
             layer.draw();
           });
 

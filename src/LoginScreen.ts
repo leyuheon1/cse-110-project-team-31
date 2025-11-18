@@ -95,9 +95,10 @@ export class LoginScreen {
             cornerRadius: 10
         });
         this.layer.add(this.inputBox);
+        this.inputBox.moveToTop();
 
         // CLICK TO FOCUS
-        this.inputBox.on('click', () => this.focusInput());
+        this.inputBox.on('click', () => this.focusInput())
         subtitle.on('click', () => this.focusInput());
 
         // INPUT TEXT
@@ -111,6 +112,15 @@ export class LoginScreen {
             width: boxWidth - 30
         });
         this.layer.add(this.inputText);
+
+        // Change cursor to pointer when hovering over input box
+        this.inputBox.on('mouseenter', () => {
+            this.stage.container().style.cursor = 'text'; // text cursor
+        });
+
+        this.inputBox.on('mouseleave', () => {
+            this.stage.container().style.cursor = 'default';
+        });
 
         // CURSOR (hidden until focus)
         this.cursor = new Konva.Rect({
