@@ -114,7 +114,7 @@ export class RecipeBookScreen {
         // Define column widths for 3-column layout
         const col1Width = contentWidth * 0.5; // GOODIES
         const col3Width = contentWidth * 0.25; // NEED
-        const col4Width = contentWidth * 0.25; // GOT
+        const col4Width = contentWidth * 0.25; // HAVE
 
         // Define column start positions
         const col1X = contentLeftMargin;
@@ -136,7 +136,7 @@ export class RecipeBookScreen {
             width: col3Width, align: 'right'
         }));
         this.bookGroup.add(new Konva.Text({
-            x: col4X, y: headerY, text: 'GOT',
+            x: col4X, y: headerY, text: 'HAVE',
             fontSize: baseFontSize, fontStyle: 'bold', fill: '#555', fontFamily: 'Arial, sans-serif',
             width: col4Width, align: 'right'
         }));
