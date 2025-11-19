@@ -3,8 +3,7 @@ import Konva from "konva";
 interface LoseScreenOptions {
   cashBalance: number;
   totalDaysPlayed: number;
-  onExit: () => void;   // red EXIT
-  onRetry: () => void;  // restart / go to how-to-play
+  onReturnHome: () => void; // Single exit action
 }
 
 export class LoseScreen {
@@ -20,147 +19,119 @@ export class LoseScreen {
   }
 
   private setupUI(): void {
+    // 1) CLEAR THE LAYER
+    // Remove previous game objects so they don't show through transparency
+    this.layer.destroyChildren();
+
     const stageWidth = this.stage.width();
     const stageHeight = this.stage.height();
 
-    // 1) modal background
-    const modal = new Konva.Rect({
-      x: stageWidth * 0.1,
-      y: stageHeight * 0.1,
-      width: stageWidth * 0.8,
-      height: stageHeight * 0.7,
-      fill: "#D62828",
-      strokeWidth: 8,
-      cornerRadius: 20,
-    });
-    this.layer.add(modal);
+    // 2) Background Image
+    const imageObj = new Image();
+    imageObj.onload = () => {
+      const bg = new Konva.Image({
+        x: 0,
+        y: 0,
+        width: stageWidth,
+        height: stageHeight,
+        image: imageObj,
+        opacity: 1,
+      });
 
-    // 2) title
-    const title = new Konva.Text({
-      x: stageWidth * 0.1,
-      y: stageHeight * 0.13,
-      width: stageWidth * 0.8,
-      text: "You Lose :(",
-      fontSize: Math.min(stageWidth * 0.08, 70),
-      fontStyle: "bold",
-      fill: "#000000",
-      align: "center",
-    });
-    this.layer.add(title);
+      this.layer.add(bg);
+      bg.moveToBottom();
+      this.layer.draw();
+    };
+    imageObj.src = "/lose-background.png";
 
-    // 3) info text
+    // 3) Stats Text
+    // Placed above the owl (approx 40% down)
     const infoText = new Konva.Text({
-      x: stageWidth * 0.15,
-      y: stageHeight * 0.25,
-      width: stageWidth * 0.7,
+      x: 0,
+      y: stageHeight * 0.4,
+      width: stageWidth,
       text:
-        `The money isn’t enough to afford the ingredients for a single cookie\n` +
-        `Cash Balance: $${this.opts.cashBalance.toFixed(2)}\n` +
-        `Total Days Played: ${this.opts.totalDaysPlayed}\n\n`,
-      fontSize: Math.min(stageWidth * 0.04, 30),
-      fill: "black",
+        `Total Days Played: ${this.opts.totalDaysPlayed}\n` +
+        `Final Balance: $${this.opts.cashBalance.toFixed(2)}`,
+      fontSize: Math.min(stageWidth * 0.05, 24),
+      fontStyle: "bold",
+      fill: "#da5552", // Dark brown matches the aesthetic better than pure black
+      align: "center",
       lineHeight: 1.5,
-      align: "left",
+      fontFamily: '"Press Start 2P", cursive',
     });
     this.layer.add(infoText);
 
-    // 4) bottom buttons (OUTSIDE modal)
-    const buttonWidth = Math.min(stageWidth * 0.22, 140);
-    const retryButtonWidth = Math.min(stageWidth * 0.28, 200);
-    const buttonHeight = Math.min(stageHeight * 0.07, 55);
-    const bottomMargin = 20;                 // distance from bottom
-    const sideMargin = 20;                   // distance from left/right
-    const buttonsY = stageHeight - buttonHeight - bottomMargin;
+    // 4) Return to Login Button
+    // Placed below the owl (approx 72% down)
+    const buttonWidth = Math.min(stageWidth * 0.4, 250);
+    const buttonHeight = Math.min(stageHeight * 0.08, 80);
 
-    // EXIT - bottom LEFT
-    const exitGroup = new Konva.Group({
-      x: sideMargin,
-      y: buttonsY,
+    const returnGroup = new Konva.Group({
+      x: (stageWidth - buttonWidth) / 2,
+      y: stageHeight * 0.72,
     });
 
-    const exitRect = new Konva.Rect({
+    const returnRect = new Konva.Rect({
       width: buttonWidth,
       height: buttonHeight,
-      fill: "#C94040",
-      cornerRadius: 10,
+      fill: "#FFAA00", // Orange match
+      cornerRadius: 15,
+      shadowColor: "black",
+      shadowBlur: 15,
+      shadowOpacity: 0.3,
+      shadowOffset: { x: 0, y: 5 },
     });
 
-    const exitLabel = new Konva.Text({
+    const returnText = new Konva.Text({
       width: buttonWidth,
       height: buttonHeight,
-      text: "EXIT",
-      fontSize: Math.min(stageWidth * 0.022, 28),
+      text: "RETURN\nTO LOGIN", // Stacked text
+      fontSize: Math.min(stageWidth * 0.03, 20),
+      fontFamily: '"Press Start 2P", cursive',
       fill: "white",
       align: "center",
       verticalAlign: "middle",
-      fontStyle: "bold",
+      lineHeight: 1.4,
     });
 
-    exitGroup.add(exitRect);
-    exitGroup.add(exitLabel);
+    returnGroup.add(returnRect);
+    returnGroup.add(returnText);
 
-    exitGroup.on("click", () => {
-      this.opts.onExit();
+    // Interaction Logic
+    returnGroup.on("click", () => {
+      this.opts.onReturnHome();
     });
-    exitGroup.on("mouseenter", () => {
+
+    returnGroup.on("mouseenter", () => {
       this.stage.container().style.cursor = "pointer";
-      exitRect.fill("#b13535");
+      returnRect.fill("#E69900"); // Darker orange
+      returnRect.scale({ x: 1.05, y: 1.05 });
+
+      // Recenter logic
+      const offsetX = (buttonWidth * 0.05) / 2;
+      const offsetY = (buttonHeight * 0.05) / 2;
+      returnRect.x(-offsetX);
+      returnRect.y(-offsetY);
+      returnText.x(-offsetX);
+      returnText.y(-offsetY);
+
       this.layer.draw();
     });
-    exitGroup.on("mouseleave", () => {
+
+    returnGroup.on("mouseleave", () => {
       this.stage.container().style.cursor = "default";
-      exitRect.fill("#C94040");
+      returnRect.fill("#FFAA00");
+      returnRect.scale({ x: 1, y: 1 });
+      returnRect.x(0);
+      returnRect.y(0);
+      returnText.x(0);
+      returnText.y(0);
+      
       this.layer.draw();
     });
-    this.layer.add(exitGroup);
 
-    // RETRY / RETURN - bottom RIGHT
-    const retryGroup = new Konva.Group({
-      x: stageWidth - buttonWidth - sideMargin-60,
-      y: buttonsY,
-    });
-
-    const retryRect = new Konva.Rect({
-      width: retryButtonWidth,
-      height: buttonHeight,
-      fill: "#4CAF50",
-      cornerRadius: 10,
-    });
-
-    const retryLabel = new Konva.Text({
-      width: retryButtonWidth,
-      height: buttonHeight,
-      text: "Return to home",
-      // 如果你一定要写 "Return to home" 那就把 buttonWidth 调大，或者改成两行
-      fontSize: Math.min(stageWidth * 0.022, 24),
-      fill: "white",
-      align: "center",
-      verticalAlign: "middle",
-      fontStyle: "bold",
-    });
-
-    retryGroup.add(retryRect);
-    retryGroup.add(retryLabel);
-
-    retryGroup.on("click", () => {
-      this.opts.onRetry();
-    });
-    retryGroup.on("mouseenter", () => {
-      this.stage.container().style.cursor = "pointer";
-      retryRect.fill("#45a049");
-      this.layer.draw();
-    });
-    retryGroup.on("mouseleave", () => {
-      this.stage.container().style.cursor = "default";
-      retryRect.fill("#4CAF50");
-      this.layer.draw();
-    });
-    this.layer.add(retryGroup);
-
+    this.layer.add(returnGroup);
     this.layer.draw();
-  }
-
-  public cleanup(): void {
-    // later: destroy layer/group if needed
   }
 }
