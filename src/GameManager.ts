@@ -14,7 +14,8 @@ import { StoryScreen } from './StoryScreen';
 import { VictoryScreen } from './VictoryScreen';
 import { LoseScreen } from './LoseScreen';
 
-export class GameManager {
+export class GameManager {  
+
   private stage: Konva.Stage;
   private layer: Konva.Layer;
   private currentPhase: GamePhase;
@@ -26,13 +27,27 @@ export class GameManager {
   private currentCleaningMinigame: CleaningMinigame | null = null;
   private postBakingAnimation: AnimationPlayer | null = null;
   private newDayAnimation: AnimationPlayer | null = null;
-
+  
   private backgroundImage: Konva.Image | null = null;
   private loginBackgroundImage: Konva.Image | null = null;
   private daySales: number = 0;
   private dayExpenses: number = 0;
   private dayTips: number = 0;
-  private customerOrders: Array<{customerNum: number, cookieCount: number}> = [];
+  
+  private winSound = new Audio('./public/Win_sound.mp3');
+  private loseSound = new Audio('./public/Lose_sound.mp3');
+  private bgmIntro = new Audio('/login_page_mus.mp3');   
+  private bgmStory = new Audio('/sad_mus.mp3');         
+  private bgmMain  = new Audio('/in_game_mus.mp3'); 
+  private bgmAnim  = new Audio('/morning_mus.mp3');   
+  private bgmEndDay  = new Audio('/day_sum_mus.mp3');  
+  private bgmbaking  = new Audio('/baking_mus.mp3');  
+
+
+  private audioUnlocked = false;
+  private winPlayedOnce = false;
+  private losePlayedOnce = false;
+  audioReady = false;   
 
   private cookieRecipe: Map<string, number> = new Map([
     ['Flour', 3],
@@ -51,6 +66,22 @@ export class GameManager {
   ]);
 
   constructor(container: HTMLDivElement) {
+    [this.bgmIntro, this.bgmStory, this.bgmMain,this.bgmAnim, this.bgmEndDay,this.bgmbaking].forEach(a => {
+    a.loop = true;
+    a.volume = 0.4;
+    });
+
+  // unlock audio on first user action
+    const unlockAudio = () => {
+      if (this.audioUnlocked) return;
+      this.audioUnlocked = true;
+      this.updateBackgroundMusic();
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
+    window.addEventListener('pointerdown', unlockAudio);
+    window.addEventListener('keydown', unlockAudio);
+
     this.stage = new Konva.Stage({
       container,
       width: container.offsetWidth,
@@ -107,7 +138,67 @@ export class GameManager {
     };
     imageObj.src = '/background1.jpg';
   }
+  private playBGM(track: 'intro' | 'story' | 'main' | 'anim' | 'endday' | 'baking' | null): void {
+  // stop everything first
+  [this.bgmIntro, this.bgmStory, this.bgmMain,this.bgmAnim,this.bgmEndDay,this.bgmbaking].forEach(a => {
+    a.pause();
+    a.currentTime = 0;
+  });
 
+  if (!this.audioUnlocked || track === null) return;
+
+  const table = {
+    intro: this.bgmIntro,
+    story: this.bgmStory,
+    main:  this.bgmMain,
+    anim:  this.bgmAnim,
+    endday: this.bgmEndDay,
+    baking: this.bgmbaking
+  } as const;
+
+  table[track].play().catch(() => {
+    // ignore play errors
+  });
+}
+
+private updateBackgroundMusic(): void {
+  if (!this.audioUnlocked) return;
+
+  switch (this.currentPhase) {
+    case GamePhase.LOGIN:
+    case GamePhase.HOW_TO_PLAY:
+      this.playBGM('intro');
+      break;
+
+    case GamePhase.STORYLINE:
+      this.playBGM('story');
+      break;
+
+    case GamePhase.POST_BAKING_ANIMATION:
+    case GamePhase.NEW_DAY_ANIMATION:
+      this.playBGM('anim');   // <--- NEW: animation music
+      break;
+
+    case GamePhase.ORDER:
+    case GamePhase.RECIPE_BOOK:
+    case GamePhase.SHOPPING:
+    case GamePhase.CLEANING:
+      this.playBGM('main');
+      break;
+    case GamePhase.DAY_SUMMARY:
+      this.playBGM('endday')
+      break;
+    case GamePhase.BAKING:
+      this.playBGM('baking')
+      break;
+    case GamePhase.VICTORY:
+    case GamePhase.DEFEAT:
+    case GamePhase.GAME_OVER:
+    default:
+      this.playBGM(null); // no bgm
+      break;
+  }
+}
   // ===== CRITICAL FIX: Proper cleanup before phase transitions =====
   private cleanupCurrentPhase(): void {
     console.log('🧹 Cleaning up current phase:', GamePhase[this.currentPhase]);
@@ -186,6 +277,7 @@ export class GameManager {
     // Clean up before rendering new phase
     this.cleanupCurrentPhase();
 
+    this.updateBackgroundMusic();
     // Add background if needed (NOT for LOGIN or ANIMATION phases)
     const skipBackgroundPhases = [
       GamePhase.LOGIN,
@@ -311,13 +403,25 @@ export class GameManager {
   }
 
   private renderVictoryPhase(): void {
+    this.audioReady = true;
+
+    if (this.audioReady && !this.winPlayedOnce) {
+        this.winSound.currentTime = 0;
+        this.winSound.play().catch(()=>{});
+        this.winPlayedOnce = true;
+    }
     new VictoryScreen(this.stage, this.layer, {
+        
       cashBalance: this.player.funds,
       totalDaysPlayed: this.player.currentDay,
       onExit: () => {
         this.previousPhase = GamePhase.VICTORY;
+        this.backgroundImage?.remove();   
+        this.layer.draw();           
+
+        this.resetGame(); 
         this.currentPhase = GamePhase.LOGIN;
-        this.resetGame(); // Reset game state
+        // Reset game state
         this.renderCurrentPhase();
       },
       onReturnHome: () => {
@@ -330,11 +434,18 @@ export class GameManager {
   }
 
   private renderLosePhase(): void {
+    this.audioReady = true;
+    if (this.audioReady) {
+    this.loseSound.currentTime = 0;
+    this.loseSound.play().catch(() => {});
+    }
     new LoseScreen(this.stage, this.layer, {
       cashBalance: this.player.funds,
       totalDaysPlayed: this.player.currentDay,
       onExit: () => {
         this.previousPhase = GamePhase.DEFEAT;
+        this.backgroundImage?.remove();   
+        this.layer.draw();
         this.currentPhase = GamePhase.LOGIN;
         this.resetGame(); // Reset game state
         this.renderCurrentPhase();

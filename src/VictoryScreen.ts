@@ -1,5 +1,6 @@
 import Konva from "konva";
 
+
 interface VictoryScreenOptions {
   cashBalance: number;
   totalDaysPlayed: number;
