@@ -16,7 +16,7 @@ build/
 .env
 .env.local
 
-# IDE
+# ID
 .vscode/
 .idea/
 *.swp

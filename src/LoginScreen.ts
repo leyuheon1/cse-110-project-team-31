@@ -4,108 +4,125 @@ export class LoginScreen {
     private layer: Konva.Layer;
     private stage: Konva.Stage;
     private onLogin: (username: string) => void;
+
     private username: string = '';
-    
-    private inputText: Konva.Text;
-    private cursor: Konva.Rect;
+    private inputFocused: boolean = false;
+
+    private inputText!: Konva.Text;
+    private cursor!: Konva.Rect;
     private cursorInterval: number | null = null;
     private keyboardHandler: (e: KeyboardEvent) => void;
-    private loginBackground: Konva.Image | null = null; // <-- ADDED
+
+    private inputBox!: Konva.Rect;
+    private loginBackground: Konva.Image | null = null;
 
     constructor(stage: Konva.Stage, layer: Konva.Layer, onLogin: (username: string) => void) {
         this.stage = stage;
         this.layer = layer;
         this.onLogin = onLogin;
+
         this.keyboardHandler = this.handleKeyPress.bind(this);
-        this.setupUI(); // This will call the new async function
-        this.setupKeyboardInput();
+
+        this.setupUI();
     }
 
-    private async setupUI(): Promise<void> {
+    private setupUI(): void {
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
 
-        const imageObj = new Image();
-        imageObj.onload = () => {
+        // BACKGROUND IMAGE
+        const bgImg = new Image();
+        bgImg.onload = () => {
             this.loginBackground = new Konva.Image({
                 x: 0,
                 y: 0,
-                image: imageObj,
+                image: bgImg,
                 width: stageWidth,
-                height: stageHeight,
+                height: stageHeight
             });
             this.layer.add(this.loginBackground);
-            this.loginBackground.moveToBottom(); // <-- THIS IS THE FIX
-            this.layer.batchDraw(); // Draw background first
-        };
-        imageObj.src = '/login-background.png'; // <-- Use the correct image
-
-
-        // Load the special font
-        await document.fonts.load('24px "Press Start 2P"');
-
-        // Title
-        const titleImageObj = new Image();
-        titleImageObj.onload = () => {
-            const ascpectRatio = titleImageObj.width / titleImageObj.height;
-            const fixedWidth = 600;
-            const fixedHeight = fixedWidth / ascpectRatio;
-
-            const titleImage = new Konva.Image({
-                x: (stageWidth - fixedWidth) / 2,
-                y: stageHeight * 0.15,
-                image: titleImageObj,
-                width: fixedWidth,
-                height: fixedHeight
-            });
-            this.layer.add(titleImage);
-            titleImage.moveToTop(); // Make sure title is on top of background
+            this.loginBackground.moveToBottom();
             this.layer.batchDraw();
         };
-        titleImageObj.src = '/title-logo.png';
+        bgImg.src = '/login-background.png';
 
-        // Subtitle
+        // TITLE IMAGE
+        const titleImg = new Image();
+        titleImg.onload = () => {
+            const aspect = titleImg.width / titleImg.height;
+            const w = 600;
+            const h = w / aspect;
+
+            const title = new Konva.Image({
+                x: (stageWidth - w) / 2,
+                y: stageHeight * 0.15,
+                image: titleImg,
+                width: w,
+                height: h
+            });
+            this.layer.add(title);
+            title.moveToTop();
+            this.layer.draw();
+        };
+        titleImg.src = '/title-logo.png';
+
+        // SUBTITLE
         const subtitle = new Konva.Text({
             x: 0,
             y: stageHeight * 0.4,
             width: stageWidth,
             text: 'Enter your name to begin!',
             fontSize: Math.min(stageWidth * 0.025, 24),
-            fontFamily: '"Press Start 2P"', 
-            fill: '#ffffff', 
-            shadowColor: 'd3d3d3', 
+            fontFamily: 'Press Start 2P',
+            fill: '#ffffff',
+            shadowColor: '#d3d3d3',
             shadowBlur: 5,
             align: 'center'
         });
         this.layer.add(subtitle);
 
-        // Input Box
-        const inputBox = new Konva.Rect({
-            x: (stageWidth - (stageWidth * 0.4)) / 2,
+        // INPUT BOX (initial green border)
+        const boxWidth = stageWidth * 0.4;
+
+        this.inputBox = new Konva.Rect({
+            x: (stageWidth - boxWidth) / 2,
             y: stageHeight * 0.45,
-            width: stageWidth * 0.4,
+            width: boxWidth,
             height: 60,
             fill: 'white',
-            stroke: '#fcbf49', 
-            stroke: '#fcbf49',
+            stroke: '#2ecc71',       // GREEN (default)
             strokeWidth: 4,
-            cornerRadius: 10 
+            cornerRadius: 10
         });
-        this.layer.add(inputBox);
-       
-        // Input text
+        this.layer.add(this.inputBox);
+        this.inputBox.moveToTop();
+
+        // CLICK TO FOCUS
+        this.inputBox.on('click', () => this.focusInput())
+        subtitle.on('click', () => this.focusInput());
+
+        // INPUT TEXT
         this.inputText = new Konva.Text({
-            x: (stageWidth - (stageWidth * 0.4)) / 2 + 15,
+            x: (stageWidth - boxWidth) / 2 + 15,
             y: stageHeight * 0.45 + 18,
             text: '',
-            fontFamily: '"Press Start 2P"', 
+            fontFamily: 'Press Start 2P',
             fontSize: 24,
             fill: 'black',
-            width: stageWidth * 0.4 - 30
+            width: boxWidth - 30
         });
         this.layer.add(this.inputText);
 
-        // Create blinking cursor
+        // Change cursor to pointer when hovering over input box
+        this.inputBox.on('mouseenter', () => {
+            this.stage.container().style.cursor = 'text'; // text cursor
+        });
+
+        this.inputBox.on('mouseleave', () => {
+            this.stage.container().style.cursor = 'default';
+        });
+
+        // CURSOR (hidden until focus)
         this.cursor = new Konva.Rect({
             x: this.inputText.x() + 2,
             y: this.inputText.y(),
@@ -116,56 +133,105 @@ export class LoginScreen {
         });
         this.layer.add(this.cursor);
 
-        // Start cursor blinking
-        this.cursorInterval = window.setInterval(() => {
-            if (this.cursor) {
-                this.cursor.visible(!this.cursor.visible());
-                this.layer.draw();
-            }
-        }, 500);
-
-        // Start Game button
+        // START BUTTON
         this.createStartButton(stageWidth, stageHeight);
 
         this.layer.draw();
     }
 
+    // FOCUS INPUT (yellow border + blinking cursor)
+    private focusInput(): void {
+        if (!this.inputFocused) {
+            this.inputFocused = true;
+
+            this.inputBox.stroke('#f1c40f'); // YELLOW
+            this.cursor.visible(true);
+
+            // Begin blinking cursor
+            this.cursorInterval = window.setInterval(() => {
+                this.cursor.visible(!this.cursor.visible());
+                this.layer.draw();
+            }, 500);
+
+            window.addEventListener('keydown', this.keyboardHandler);
+            this.layer.draw();
+        }
+    }
+
+    // HANDLE KEYBOARD INPUT
+    private handleKeyPress(e: KeyboardEvent): void {
+        if (!this.inputFocused) return;
+
+        if (e.key === 'Enter') {
+            if (this.username.trim() === '') {
+                alert('Please enter a name!');
+                return;
+            }
+            this.finishLogin();
+            return;
+        }
+
+        if (e.key === 'Backspace') {
+            this.username = this.username.slice(0, -1);
+        } else if (e.key.length === 1 && this.username.length < 20) {
+            if (/[a-zA-Z0-9 ]/.test(e.key)) {
+                this.username += e.key;
+            }
+        }
+
+        this.updateInputDisplay();
+    }
+
+    private updateInputDisplay(): void {
+        this.inputText.text(this.username);
+
+        const textWidth = this.inputText.getTextWidth();
+        this.cursor.x(this.inputText.x() + textWidth + 2);
+
+        this.layer.draw();
+    }
+
+    // START GAME BUTTON (with wood post + arrow restored)
     private createStartButton(stageWidth: number, stageHeight: number): void {
-        const buttonWidth = Math.min(stageWidth * 0.25, 300);
-        const buttonHeight = Math.min(stageHeight * 0.08, 60);
-        
-        const buttonGroup = new Konva.Group({
-            x: (stageWidth - buttonWidth) / 2,
-            y: stageHeight * 0.6
+        const width = Math.min(stageWidth * 0.25, 300);
+        const height = 60;
+
+        // Main sign group (everything is inside this)
+        const signGroup = new Konva.Group({
+            x: (stageWidth - width) / 2,
+            y: stageHeight * 0.62,
         });
 
-        // Sign board
+        // Wooden board
         const board = new Konva.Rect({
-            width: buttonWidth,
-            height: buttonHeight,
+            width,
+            height,
             fill: '#a67c52',
-            shadowColor: '#654321',
+            cornerRadius: 6,
             shadowBlur: 8,
+            shadowColor: '#654321',
             shadowOffsetY: 3,
             shadowOpacity: 0.6
         });
 
-        // Sign "arrow"
+        // Wooden arrow pointer
         const arrow = new Konva.Line({
             points: [
-                buttonWidth, 0, // top right corner
-                buttonWidth + buttonHeight / 2, buttonHeight / 2, // arrow tip
-                buttonWidth, buttonHeight // bottom right corner
+                width, 0,
+                width + height / 2, height / 2,
+                width, height
             ],
             fill: '#a67c52',
             closed: true,
+            shadowColor: '#654321',
+            shadowBlur: 5,
             shadowOpacity: 0.5
         });
 
-        // Sign post
+        // Wooden post under the sign
         const post = new Konva.Rect({
-            x: buttonWidth / 2 - 10, 
-            y: buttonHeight,         
+            x: width / 2 - 10,
+            y: height,
             width: 20,
             height: 215,
             fill: '#b5895a',
@@ -175,34 +241,35 @@ export class LoginScreen {
             shadowOpacity: 0.5
         });
 
+        // Text on the board
         const text = new Konva.Text({
-            width: buttonWidth,
-            height: buttonHeight,
+            width,
+            height,
             text: 'START GAME',
+            fontFamily: 'Press Start 2P',
             fontSize: Math.min(stageWidth * 0.022, 28),
             fill: 'white',
             align: 'center',
-            verticalAlign: 'middle',
-            fontStyle: 'bold',
-            fontFamily: 'Press Start 2P' 
+            verticalAlign: 'middle'
         });
 
-        buttonGroup.add(board);
-        buttonGroup.add(arrow);
-        buttonGroup.add(text);
-        buttonGroup.add(post);
+        // Add everything to ONE group
+        signGroup.add(post);
+        signGroup.add(board);
+        signGroup.add(arrow);
+        signGroup.add(text);
 
-        buttonGroup.on('click', () => {
+        // Click behavior
+        signGroup.on('click', () => {
             if (this.username.trim() === '') {
                 alert('Please enter a name!');
                 return;
             }
-            localStorage.setItem('username', this.username.trim());
-            this.cleanup();
-            this.onLogin(this.username.trim());
+            this.finishLogin();
         });
 
-        buttonGroup.on('mouseenter', () => {
+        // Hover animation (affects whole sign)
+        signGroup.on('mouseenter', () => {
             this.stage.container().style.cursor = 'pointer';
             board.shadowBlur(20);
             board.shadowOpacity(0.9);
@@ -210,7 +277,7 @@ export class LoginScreen {
             this.layer.draw();
         });
 
-        buttonGroup.on('mouseleave', () => {
+        signGroup.on('mouseleave', () => {
             this.stage.container().style.cursor = 'default';
             board.shadowBlur(8);
             board.shadowOpacity(0.6);
@@ -218,54 +285,20 @@ export class LoginScreen {
             this.layer.draw();
         });
 
-        this.layer.add(buttonGroup);
-        this.stage.add(this.layer);
+        this.layer.add(signGroup);
     }
 
-    private setupKeyboardInput(): void {
-        window.addEventListener('keydown', this.keyboardHandler);
-    }
-
-    private handleKeyPress(e: KeyboardEvent): void {
-        if (e.key === 'Enter') {
-            if (this.username.trim() === '') {
-                alert('Please enter a name!');
-                return;
-            }
-            localStorage.setItem('username', this.username.trim());
-            this.cleanup();
-            this.onLogin(this.username.trim());
-            return;
-        }
-        
-        if (e.key === 'Backspace') {
-            this.username = this.username.slice(0, -1);
-        } else if (e.key.length === 1 && this.username.length < 20) {
-            if (/[a-zA-Z0-9 ]/.test(e.key)) {
-                this.username += e.key;
-            }
-        }
-        
-        this.updateInputDisplay();
-    }
-
-    private updateInputDisplay(): void {
-        this.inputText.text(this.username);
-        
-        const textWidth = this.inputText.getTextWidth();
-        this.cursor.x(this.inputText.x() + textWidth + 2);
-        
-        this.layer.draw();
+    // COMPLETE LOGIN
+    private finishLogin(): void {
+        localStorage.setItem('username', this.username.trim());
+        this.cleanup();
+        this.onLogin(this.username.trim());
     }
 
     public cleanup(): void {
+        if (this.cursorInterval) clearInterval(this.cursorInterval);
         window.removeEventListener('keydown', this.keyboardHandler);
-        if (this.cursorInterval) {
-            clearInterval(this.cursorInterval);
-        }
-        // --- ADDED: Clean up background ---
-        if (this.loginBackground) {
-            this.loginBackground.destroy();
-        }
+
+        if (this.loginBackground) this.loginBackground.destroy();
     }
 }

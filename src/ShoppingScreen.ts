@@ -19,12 +19,16 @@ export class ShoppingScreen {
   private onViewRecipe: () => void;
 
   private currentFunds: number;
+  private currentDayDemand: number;
+  private currentDay: number;
+  private customerOrders: Array<{customerNum: number, cookieCount: number}>;
 
   private focusedInput: string | null = null;
   private focusedInputBox: Konva.Rect | null = null;
-  private cursor: Konva.Rect | null = null;
-  private cursorInterval: number | null = null;
   private currentPriceText: Konva.Text | null = null;
+  
+  // NEW: To hold the single loaded price tag image object
+  private priceTagImageObj: HTMLImageElement | null = null; 
 
   private ingredients: IngredientItem[] = [
     { name: "Flour", price: 0.5, inputValue: "0", unit: "cup" },
@@ -43,6 +47,8 @@ export class ShoppingScreen {
     layer: Konva.Layer,
     currentFunds: number,
     currentDay: number,
+    currentDayDemand: number,
+    customerOrders: Array<{customerNum: number, cookieCount: number}>,
     onPurchaseComplete: (
       purchases: Map<string, number>,
       totalCost: number
@@ -52,6 +58,9 @@ export class ShoppingScreen {
     this.stage = stage;
     this.layer = layer;
     this.currentFunds = currentFunds;
+    this.currentDay = currentDay;
+    this.currentDayDemand = currentDayDemand;
+    this.customerOrders = customerOrders;
     this.onPurchaseComplete = onPurchaseComplete;
     this.onViewRecipe = onViewRecipe;
     this.keyboardHandler = this.handleKeyPress.bind(this);
@@ -60,79 +69,102 @@ export class ShoppingScreen {
     this.setupKeyboardInput();
   }
 
+  // --- UI SETUP & IMAGE LOADING ---
+
   private setupUI(): void {
     this.layer.destroyChildren();
     const stageWidth = this.stage.width();
     const stageHeight = this.stage.height();
 
-    // --- Background ---
-    const image = new Image();
-    image.src = "./Shopping.png";
-    image.onload = () => {
+    // 1. Load Background Image
+    const backgroundImage = new Image();
+    backgroundImage.src = "./Shopping.png";
+    backgroundImage.onload = () => {
       const background = new Konva.Image({
         x: 0,
         y: 0,
         width: stageWidth,
         height: stageHeight,
-        image: image,
+        image: backgroundImage,
       });
       this.layer.add(background);
       background.moveToBottom();
       this.layer.draw();
+
+      // 2. Load Price Tag Image after background loads
+      this.loadPriceTagImage(() => {
+        // 3. Draw all dynamic UI elements once images are ready
+        this.drawDynamicUI();
+        this.layer.draw();
+      });
     };
+  }
+  
+  private loadPriceTagImage(callback: () => void): void {
+    this.priceTagImageObj = new Image();
+    this.priceTagImageObj.onload = callback;
+    this.priceTagImageObj.onerror = () => {
+        console.warn("Failed to load price-tag.png. Using Konva.Rect fallback.");
+        callback(); 
+    };
+    this.priceTagImageObj.src = "/price-tag.png";
+  }
 
-    // --- Current Funds ---
-    this.currentPriceText = new Konva.Text({
-      x: 545,
-      y: 65,
-      text: `Current Balance: $${this.currentFunds.toFixed(2)}`,
-      fontSize: 30,
-      fill: "white",
-      fontFamily: "Bakbak one",
-      fontStyle: "bold",
+  private createIngredientNameText(stageWidth: number, y: number, name: string, center_X: number): void {
+    const nameText = new Konva.Text({
+      x: center_X,
+      y: y,
+      text: name.toUpperCase(),
+      fontSize: Math.min(stageWidth * 0.01, 12),
+      fill: 'white',
+      fontStyle: 'bold',
+      fontFamily: "Press Start 2P",
+      align: 'center',
+      width: stageWidth * 0.1,
+      offsetX: stageWidth * 0.05,
     });
-    this.layer.add(this.currentPriceText);
+    this.layer.add(nameText);
+  }
 
-    // --- Ingredients ---
-    const xPositions = [310, 490, 685, 890, 1090];
-    const yPositions = [300, 417, 300, 417, 312];
-    const xBox = [330, 510, 710, 920, 1120];
-    const yBox = [550, 550, 550, 550, 550];
+  // --- DYNAMIC UI RENDERING ---
+
+  private drawDynamicUI(): void {
+    const stageWidth = this.stage.width();
+    const stageHeight = this.stage.height();
+
+    // --- Current Funds Group (Box + Text) ---
+    this.createBalanceGroup(stageWidth, stageHeight);
+
+    // --- Ingredients Setup (Responsive Grid and Grouping) ---
+    const itemXPercentages = [0.22, 0.363, 0.5, 0.637, 0.77]; 
+    const inputY = stageHeight * 0.68;
+    const nameY = stageHeight * 0.65;
 
     this.ingredients.forEach((ingredient, index) => {
-      // Price Text
-      const priceText = new Konva.Text({
-        x: xPositions[index],
-        y: yPositions[index],
-        text: `$${ingredient.price.toFixed(2)}`,
-        fontSize: 24,
-        fill: "white",
-        fontFamily: "Bakbak one",
-      });
-      this.layer.add(priceText);
+        const center_X = stageWidth * itemXPercentages[index];
 
-      // Input box row
-      this.createIngredientRow(
-        stageWidth,
-        yBox[index],
-        ingredient,
-        xBox[index]
-      );
+        // Ingredient Name
+        this.createIngredientNameText(stageWidth, nameY, ingredient.name, center_X);
+        
+        // Group for Price Tag and Price Text
+        this.createPriceTagGroup(stageWidth, stageHeight, ingredient, center_X); 
+        
+        // Input box row (responsive)
+        this.createIngredientRow(
+            stageWidth,
+            inputY,
+            ingredient,
+            center_X
+        );
     });
+    
+    // Initialize Total Cost display
+    this.updateTotalCost();
 
-    // --- Total Cost ---
-    const currentY = stageHeight * 0.22;
-    this.totalCostText = new Konva.Text({
-      x: 950,
-      y: 675,
-      fontSize: Math.min(stageWidth * 0.025, 30),
-      fontStyle: "bold",
-    });
-    this.layer.add(this.totalCostText);
-
-    // --- Buttons ---
-    this.createPurchaseButton(stageWidth, currentY + stageHeight * 0.1);
-    this.createViewRecipeButton(stageWidth, stageHeight);
+    // --- Buttons (Aligned in Footer) ---
+    this.createViewRecipeButton(stageWidth, stageHeight); 
+    this.createViewOrdersButton(stageWidth, stageHeight);
+    this.createPurchaseButton(stageWidth, 0); 
 
     // --- Exit & Info ---
     new ExitButton(this.stage, this.layer, () => {
@@ -140,39 +172,142 @@ export class ShoppingScreen {
       window.location.href = "/login.html";
     });
     new InfoButton(this.stage, this.layer);
-
-    this.layer.draw();
   }
+
+  // --- GROUPING & CREATION HELPERS ---
+
+  private createBalanceGroup(stageWidth: number, stageHeight: number): void {
+    const balanceBoxWidth = stageWidth * 0.25;
+    const balanceBoxHeight = stageHeight * 0.1;
+    const balanceBoxY = stageHeight * 0.1; 
+    const balanceBoxX = stageWidth * 0.5 - balanceBoxWidth / 2;
+
+    const balanceGroup = new Konva.Group({
+        x: balanceBoxX,
+        y: balanceBoxY,
+    });
+
+    const balanceBackgroundRect = new Konva.Rect({
+        width: balanceBoxWidth,
+        height: balanceBoxHeight,
+        fill: "#C94040",
+        cornerRadius: 10,
+    });
+    balanceGroup.add(balanceBackgroundRect);
+
+    const balanceFontSize = Math.min(stageWidth * 0.01, 12);
+    
+    // 1. Current Funds (Top line)
+    this.currentPriceText = new Konva.Text({
+        x: balanceBoxWidth * 0.05,
+        width: balanceBoxWidth * 0.9,
+        height: balanceBoxHeight / 2,
+        text: `Current Balance: $${this.currentFunds.toFixed(2)}`,
+        fontSize: balanceFontSize,
+        fill: "white",
+        fontFamily: "Press Start 2P",
+        align: 'center',
+        verticalAlign: 'middle',
+    });
+    balanceGroup.add(this.currentPriceText);
+
+    // 2. Total Cost (Bottom line)
+    this.totalCostText = new Konva.Text({
+        x: balanceBoxWidth * 0.05,
+        y: balanceBoxHeight / 2,
+        width: balanceBoxWidth * 0.9,
+        height: balanceBoxHeight / 2,
+        text: `Total Cost: $${(0).toFixed(2)}`,
+        fontSize: balanceFontSize,
+        fill: "white",
+        fontFamily: "Press Start 2P",
+        align: 'center',
+        verticalAlign: 'middle',
+    });
+    balanceGroup.add(this.totalCostText); 
+    
+    this.layer.add(balanceGroup);
+  }
+
+  private createPriceTagGroup(stageWidth: number, stageHeight: number, ingredient: IngredientItem, center_X: number): void {
+    const desiredWidth = stageWidth * 0.09;
+    let desiredHeight = stageHeight * 0.07;
+
+    if (this.priceTagImageObj) {
+        const aspectRatio = this.priceTagImageObj.width / this.priceTagImageObj.height;
+        desiredHeight = desiredWidth / aspectRatio;
+    }
+    
+    const priceTagY = stageHeight * 0.35;
+
+    const priceTagGroup = new Konva.Group({
+      x: center_X - desiredWidth / 2,
+      y: priceTagY - desiredHeight / 2,
+    });
+
+    if (this.priceTagImageObj) {
+      const priceTagImage = new Konva.Image({
+        image: this.priceTagImageObj,
+        width: desiredWidth,
+        height: desiredHeight,
+      });
+      priceTagGroup.add(priceTagImage);
+    } else {
+      priceTagGroup.add(new Konva.Rect({
+        width: desiredWidth,
+        height: desiredHeight,
+        fill: "#c94040",
+        cornerRadius: 10,
+      }));
+    }
+
+    const priceText = new Konva.Text({
+      width: desiredWidth,
+      height: desiredHeight,
+      text: `$${ingredient.price.toFixed(2)}`,
+      fontSize: Math.min(stageWidth * 0.01, 12),
+      fill: "white",
+      fontFamily: "Press Start 2P",
+      align: 'center',
+      verticalAlign: 'middle',
+    });
+    priceTagGroup.add(priceText);
+    this.layer.add(priceTagGroup);
+  }
+
+  // --- BUTTONS AND INPUTS ---
 
   private createViewRecipeButton(
     stageWidth: number,
     stageHeight: number
   ): void {
-    const buttonWidth = 190;
-    const buttonHeight = 87;
+    const buttonWidth = stageWidth * 0.12; 
+    const buttonHeight = stageWidth * 0.03; 
+    const footerY = stageHeight * 0.75;
 
     const buttonGroup = new Konva.Group({
-      x: 630,
-      y: 117,
+        x: stageWidth * 0.3, 
+        y: footerY,
+        offsetX: buttonWidth / 2,
     });
 
     const rect = new Konva.Rect({
-      width: buttonWidth,
-      height: buttonHeight,
-      fill: "#ff9500",
-      cornerRadius: 5,
+        width: buttonWidth,
+        height: buttonHeight,
+        fill: "#ff9500",
+        cornerRadius: 10,
     });
 
     const text = new Konva.Text({
-      width: buttonWidth,
-      height: buttonHeight,
-      text: "View Recipe",
-      fontSize: 40,
-      fill: "white",
-      align: "center",
-      verticalAlign: "middle",
-      fontFamily: "Bakbak one",
-      fontStyle: "bold",
+        width: buttonWidth,
+        height: buttonHeight,
+        text: "VIEW RECIPE",
+        fontSize: Math.min(stageWidth * 0.01, 12),
+        fill: "white",
+        align: "center",
+        verticalAlign: "middle",
+        fontFamily: "Press Start 2P",
+        fontStyle: "bold",
     });
 
     buttonGroup.add(rect);
@@ -199,18 +334,222 @@ export class ShoppingScreen {
     this.layer.draw();
   }
 
+  private createViewOrdersButton(
+    stageWidth: number,
+    stageHeight: number
+  ): void {
+    const buttonWidth = stageWidth * 0.12; 
+    const buttonHeight = stageWidth * 0.03; 
+    const footerY = stageHeight * 0.75;
+
+    const buttonGroup = new Konva.Group({
+        x: stageWidth * 0.5, 
+        y: footerY,
+        offsetX: buttonWidth / 2,
+    });
+
+    const rect = new Konva.Rect({
+        width: buttonWidth,
+        height: buttonHeight,
+        fill: "#3498db",
+        cornerRadius: 10,
+    });
+
+    const text = new Konva.Text({
+        width: buttonWidth,
+        height: buttonHeight,
+        text: "VIEW ORDERS",
+        fontSize: Math.min(stageWidth * 0.01, 12),
+        fill: "white",
+        align: "center",
+        verticalAlign: "middle",
+        fontFamily: "Press Start 2P",
+        fontStyle: "bold",
+    });
+
+    buttonGroup.add(rect);
+    buttonGroup.add(text);
+    text.listening(false);
+
+    rect.on("click", () => {
+      this.showReceiptModal();
+    });
+    rect.on("mouseenter", () => {
+      this.stage.container().style.cursor = "pointer";
+      rect.fill("#5dade2");
+      this.layer.draw();
+    });
+    rect.on("mouseleave", () => {
+      this.stage.container().style.cursor = "default";
+      rect.fill("#3498db");
+      this.layer.draw();
+    });
+
+    this.layer.add(buttonGroup);
+    buttonGroup.moveToTop();
+    this.layer.draw();
+  }
+
+  private showReceiptModal(): void {
+    const stageWidth = this.stage.width();
+    const stageHeight = this.stage.height();
+
+    // Create modal layer
+    const modalLayer = new Konva.Layer();
+    
+    // Darkened/blurred background overlay
+    const overlay = new Konva.Rect({
+        x: 0,
+        y: 0,
+        width: stageWidth,
+        height: stageHeight,
+        fill: 'rgba(0, 0, 0, 0.7)',
+    });
+    modalLayer.add(overlay);
+
+    // Load and create receipt
+    const imageObj = new Image();
+    imageObj.onload = () => {
+        const aspectRatio = imageObj.width / imageObj.height;
+        const receiptWidth = stageWidth * 0.3;
+        const receiptHeight = receiptWidth / aspectRatio;
+
+        const V_PAD_HEADER = receiptHeight * 0.05;
+        const V_STEP_ORDER = receiptHeight * 0.035;
+        const X_PAD_LEFT = receiptWidth * 0.1;
+        const X_PAD_RIGHT = receiptWidth * 0.55;
+
+        const receiptGroup = new Konva.Group({
+            x: (stageWidth - receiptWidth) / 2,
+            y: (stageHeight - receiptHeight) / 2 - stageHeight * 0.05,
+        });
+        
+        const receipt = new Konva.Image({
+            image: imageObj,
+            width: receiptWidth,
+            height: receiptHeight
+        });
+        receiptGroup.add(receipt);
+
+        let currentY = receiptHeight * 0.14;
+
+        const dayText = new Konva.Text({
+            x: receiptWidth * 0.1,
+            y: currentY,
+            width: receiptWidth * 0.8,
+            text: `DAY ${this.currentDay}`,
+            fontSize: Math.min(stageWidth * 0.015, 18),
+            fill: 'black',
+            align: 'center',
+            fontFamily: 'Doto',
+            fontStyle: 'bold'
+        });
+        receiptGroup.add(dayText);
+        
+        currentY += stageHeight * 0.04;
+
+        // Use the actual customer orders from OrderScreen
+        const fontSize = Math.min(stageWidth * 0.013, 15);
+
+        this.customerOrders.forEach(order => {
+            const customerName = new Konva.Text({
+                x: X_PAD_LEFT,
+                y: currentY,
+                text: `${order.customerNum}. CUSTOMER ${order.customerNum}`,
+                fontSize: fontSize,
+                fontFamily: 'Doto',
+                fill: 'black'
+            });
+            receiptGroup.add(customerName);
+            
+            const cookieCountText = new Konva.Text({
+                x: X_PAD_RIGHT, 
+                y: currentY,
+                width: receiptWidth * 0.35, 
+                text: `${order.cookieCount} COOKIES`,
+                fontSize: fontSize, 
+                fill: 'black',
+                fontFamily: 'Doto',
+                align: 'right'
+            });
+            receiptGroup.add(cookieCountText);
+            currentY += V_STEP_ORDER;
+        });
+        
+        const totalY = currentY + V_PAD_HEADER * 0.5;
+
+        const totalText = new Konva.Text({
+            x: receiptWidth * 0.1,
+            y: totalY,
+            width: receiptWidth * 0.8,
+            text: `TOTAL: ${this.currentDayDemand} COOKIES`,
+            fontSize: Math.min(stageWidth * 0.016, 18),
+            fontStyle: 'bold',
+            fontFamily: 'Doto',
+            fill: 'black',
+            align: 'center'
+        });
+        receiptGroup.add(totalText);
+
+        modalLayer.add(receiptGroup);
+
+        // Close button (X in top-left corner of receipt)
+        const closeButtonSize = receiptWidth * 0.08;
+        const closeButton = new Konva.Circle({
+            x: (stageWidth - receiptWidth) / 2 + closeButtonSize,
+            y: (stageHeight - receiptHeight) / 2 - stageHeight * 0.05 + closeButtonSize,
+            radius: closeButtonSize / 2,
+            fill: '#e74c3c',
+        });
+
+        const closeX = new Konva.Text({
+            x: (stageWidth - receiptWidth) / 2 + closeButtonSize - 1,
+            y: (stageHeight - receiptHeight) / 2 - stageHeight * 0.05 + closeButtonSize,
+            text: 'X',
+            fontSize: closeButtonSize * 0.6,
+            fill: 'white',
+            fontFamily: 'Press Start 2P',
+            fontStyle: 'bold',
+            offsetX: closeButtonSize * 0.18,
+            offsetY: closeButtonSize * 0.25,
+        });
+
+        closeButton.on('click', () => {
+            modalLayer.destroy();
+        });
+        closeButton.on('mouseenter', () => {
+            this.stage.container().style.cursor = 'pointer';
+            closeButton.fill('#c0392b');
+            modalLayer.draw();
+        });
+        closeButton.on('mouseleave', () => {
+            this.stage.container().style.cursor = 'default';
+            closeButton.fill('#e74c3c');
+            modalLayer.draw();
+        });
+
+        modalLayer.add(closeButton);
+        modalLayer.add(closeX);
+        modalLayer.draw();
+    };
+
+    imageObj.src = '/start-receipt.png';
+    
+    this.stage.add(modalLayer);
+  }
+
   private createIngredientRow(
     stageWidth: number,
     y: number,
     ingredient: IngredientItem,
-    x: number
+    center_X: number
   ): void {
-    const boxWidth = 100;
-    const boxHeight = 40;
+    const boxWidth = stageWidth * 0.07;
+    const boxHeight = stageWidth * 0.03;
 
     const inputBox = new Konva.Rect({
-      x: x - boxWidth / 2,
-      y: y + 30,
+      x: center_X - boxWidth / 2,
+      y: y,
       width: boxWidth,
       height: boxHeight,
       fill: "white",
@@ -220,14 +559,15 @@ export class ShoppingScreen {
     });
 
     const inputText = new Konva.Text({
-      x: x - boxWidth / 2 + 10,
-      y: y + 40,
+      x: center_X - boxWidth / 2,
+      y: y + (boxHeight * 0.3), 
       text: ingredient.inputValue,
-      fontSize: 20,
+      fontSize: Math.min(stageWidth * 0.015, 18),
+      fontFamily: 'Press Start 2P',
       fill: "black",
-      width: boxWidth - 20,
+      width: boxWidth,
+      align: 'center'
     });
-
     this.layer.add(inputBox);
     this.layer.add(inputText);
 
@@ -236,6 +576,15 @@ export class ShoppingScreen {
     inputBox.on("click", () =>
       this.focusInput(ingredient.name, inputBox, inputText)
     );
+
+    inputBox.on("mouseenter", () => {
+      this.stage.container().style.cursor = "pointer";
+    });
+    inputBox.on("mouseleave", () => {
+      this.stage.container().style.cursor = "default";
+    });
+
+    inputText.listening(false);
     inputText.on("click", () =>
       this.focusInput(ingredient.name, inputBox, inputText)
     );
@@ -250,37 +599,11 @@ export class ShoppingScreen {
       this.focusedInputBox.stroke("#3498db");
       this.focusedInputBox.strokeWidth(2);
     }
-    if (this.cursor) {
-      this.cursor.destroy();
-      this.cursor = null;
-    }
-    if (this.cursorInterval) {
-      clearInterval(this.cursorInterval);
-    }
 
     this.focusedInput = ingredientName;
     this.focusedInputBox = inputBox;
     inputBox.stroke("#27ae60");
     inputBox.strokeWidth(3);
-
-    const textWidth = inputText.getTextWidth();
-    this.cursor = new Konva.Rect({
-      x: inputText.x() + textWidth + 2,
-      y: inputText.y(),
-      width: 2,
-      height: inputText.fontSize(),
-      fill: "black",
-    });
-    this.layer.add(this.cursor);
-
-    let visible = true;
-    this.cursorInterval = window.setInterval(() => {
-      if (this.cursor) {
-        this.cursor.visible(visible);
-        visible = !visible;
-        this.layer.draw();
-      }
-    }, 500);
 
     this.layer.draw();
   }
@@ -313,9 +636,6 @@ export class ShoppingScreen {
     const inputText = this.inputTexts.get(ingredientName);
     if (ingredient && inputText) {
       inputText.text(ingredient.inputValue);
-      if (this.cursor && this.focusedInput === ingredientName) {
-        this.cursor.x(inputText.x() + inputText.getTextWidth() + 2);
-      }
       this.layer.draw();
     }
   }
@@ -334,12 +654,14 @@ export class ShoppingScreen {
   }
 
   private createPurchaseButton(stageWidth: number, y: number): void {
-    const buttonWidth = Math.min(stageWidth * 0.25, 300);
-    const buttonHeight = Math.min(this.stage.height() * 0.08, 60);
+    const buttonWidth = stageWidth * 0.12;
+    const buttonHeight = stageWidth * 0.03;
+    const footerY = this.stage.height() * 0.75;
 
     const buttonGroup = new Konva.Group({
-      x: 950, // keep your current x
-      y: 730, // keep your current y
+      x: stageWidth * 0.7,
+      y: footerY, 
+      offsetX: buttonWidth / 2, 
     });
 
     const rect = new Konva.Rect({
@@ -353,7 +675,8 @@ export class ShoppingScreen {
       width: buttonWidth,
       height: buttonHeight,
       text: "PURCHASE",
-      fontSize: Math.min(stageWidth * 0.022, 28),
+      fontSize: Math.min(stageWidth * 0.01, 12),
+      fontFamily: "Press Start 2P",
       fill: "white",
       align: "center",
       verticalAlign: "middle",
@@ -363,7 +686,6 @@ export class ShoppingScreen {
     buttonGroup.add(rect);
     buttonGroup.add(label);
 
-    // Click handler
     buttonGroup.on("click", () => {
       let totalCost = 0;
 
@@ -377,10 +699,8 @@ export class ShoppingScreen {
         return;
       }
 
-      // Deduct total cost from current funds
       this.currentFunds -= totalCost;
 
-      // Update displayed balance
       if (this.currentPriceText) {
         this.currentPriceText.text(
           `Current Balance: $${this.currentFunds.toFixed(2)}`
@@ -388,7 +708,6 @@ export class ShoppingScreen {
         this.layer.draw();
       }
 
-      // Call your existing callback
       const purchases = new Map<string, number>();
       this.ingredients.forEach((ing) => {
         const qty = parseInt(ing.inputValue) || 0;
@@ -416,6 +735,5 @@ export class ShoppingScreen {
 
   public cleanup(): void {
     window.removeEventListener("keydown", this.keyboardHandler);
-    if (this.cursorInterval) clearInterval(this.cursorInterval);
   }
 }

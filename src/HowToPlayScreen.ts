@@ -17,8 +17,7 @@ export class HowToPlayScreen {
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
 
-        // Modal box (responsive)
-        // Paper-like modal (shadow + subtle highlight + crease)
+        // Modal box
         const modalX = stageWidth * 0.1;
         const modalY = stageHeight * 0.1;
         const modalW = stageWidth * 0.8;
@@ -32,8 +31,8 @@ export class HowToPlayScreen {
             width: modalW,
             height: modalH,
             cornerRadius: 26,
-            fill: '#F5F1E8',          // 比纯白更像纸
-            stroke: '#E8E1C9',        // 很淡的纸边
+            fill: '#F5F1E8',
+            stroke: '#E8E1C9',
             strokeWidth: 3,
             shadowColor: 'rgba(0,0,0,0.35)',
             shadowBlur: 20,
@@ -49,7 +48,7 @@ export class HowToPlayScreen {
             cornerRadius: 26,
             listening: false,
             fillLinearGradientStartPoint: { x: 0, y: 0 },
-            fillLinearGradientEndPoint:   { x: 0, y: modalH },
+            fillLinearGradientEndPoint: { x: 0, y: modalH },
             fillLinearGradientColorStops: [0, 'rgba(255,255,255,0.55)', 1, 'rgba(255,255,255,0)'],
             opacity: 0.6
         });
@@ -64,12 +63,11 @@ export class HowToPlayScreen {
         modalGroup.add(paper, highlight, crease);
         this.layer.add(modalGroup);
 
-
-        // Title (responsive)
+        // Title
         const title = new Konva.Text({
-            x: stageWidth * 0.1,
-            y: stageHeight * 0.13,
-            width: stageWidth * 0.8,
+            x: modalX,
+            y: modalY + 20,
+            width: modalW,
             text: 'HOW TO PLAY',
             fontSize: Math.min(stageWidth * 0.08, 40),
             fontStyle: 'bold',
@@ -79,62 +77,58 @@ export class HowToPlayScreen {
         });
         this.layer.add(title);
 
-        // Load instructions with proper sizing
+        // Load instructions
         this.loadInstructions(stageWidth, stageHeight);
 
-        // Start button (responsive)
+        // Start button
         this.createStartButton(stageWidth, stageHeight);
 
-        //Exit Button
-        const exitButton = new ExitButton(this.stage, this.layer, () => {
+        // Exit button
+        new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
-            window.location.href = '/login.hmtl'; //go to login page
+            window.location.href = '/login.html'; // fixed typo
         });
-        
+
         this.layer.draw();
     }
 
     private async loadInstructions(stageWidth: number, stageHeight: number): Promise<void> {
         try {
             const response = await fetch('/howtoplay.txt');
-            const text = await response.text();
-            
-            // Calculate text box dimensions
+            let text = await response.text();
+
+            // Remove extra indentation and empty lines
+            text = text
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .join('\n');
+
             const textBoxX = stageWidth * 0.15;
             const textBoxY = stageHeight * 0.22;
             const textBoxWidth = stageWidth * 0.7;
-            const textBoxHeight = stageHeight * 0.45;  // Space for text before button
-            
-            // Create clipping rect so text doesn't overflow
-            const clipRect = new Konva.Rect({
-                x: textBoxX,
-                y: textBoxY,
-                width: textBoxWidth,
-                // height: textBoxHeight,
-                fill: 'transparent'
-            });
-            
+            const textBoxHeight = stageHeight * 0.45;
+
             const instructions = new Konva.Text({
                 x: textBoxX,
                 y: textBoxY,
                 width: textBoxWidth,
                 height: textBoxHeight,
-                text: text,
-                fontSize: Math.min(stageWidth * 0.02, 20),  // Responsive font size
+                text,
+                fontSize: Math.min(stageWidth * 0.02, 20),
                 fontFamily: 'VT323, monospace',
                 fill: 'black',
-                lineHeight: 1.5,
+                lineHeight: 1.6,
                 wrap: 'word',
-                ellipsis: false, 
-                align: 'left'
+                align: 'left',
+                padding: 10
             });
-            
-            this.layer.add(instructions)
+
+            this.layer.add(instructions);
             this.layer.draw();
         } catch (error) {
             console.error('Could not load instructions:', error);
-            
-            // Fallback text if file doesn't load
+
             const fallback = new Konva.Text({
                 x: stageWidth * 0.15,
                 y: stageHeight * 0.25,
@@ -148,14 +142,14 @@ export class HowToPlayScreen {
             this.layer.add(fallback);
             this.layer.draw();
         }
-    }   
+    }
 
     private createStartButton(stageWidth: number, stageHeight: number): void {
         const buttonWidth = Math.min(stageWidth * 0.25, 300);
         const buttonHeight = Math.min(stageHeight * 0.08, 60);
-        
+
         const buttonGroup = new Konva.Group({
-            x: (stageWidth - buttonWidth) / 2,  // Center horizontally
+            x: (stageWidth - buttonWidth) / 2,
             y: stageHeight * 0.72
         });
 
@@ -171,6 +165,7 @@ export class HowToPlayScreen {
             height: buttonHeight,
             text: 'START GAME',
             fontSize: Math.min(stageWidth * 0.022, 28),
+            fontFamily: 'Press Start 2P',
             fill: 'white',
             align: 'center',
             verticalAlign: 'middle',

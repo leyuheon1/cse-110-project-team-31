@@ -32,6 +32,7 @@ export class GameManager {
   private daySales: number = 0;
   private dayExpenses: number = 0;
   private dayTips: number = 0;
+  private customerOrders: Array<{customerNum: number, cookieCount: number}> = [];
 
   private cookieRecipe: Map<string, number> = new Map([
     ['Flour', 3],
@@ -97,6 +98,7 @@ export class GameManager {
         height: this.stage.height(),
         opacity: 0.3,
       });
+      // Do not add to layer here; renderCurrentPhase will add if needed.
       this.renderCurrentPhase();
     };
     imageObj.onerror = () => {
@@ -109,60 +111,100 @@ export class GameManager {
   // ===== CRITICAL FIX: Proper cleanup before phase transitions =====
   private cleanupCurrentPhase(): void {
     console.log('🧹 Cleaning up current phase:', GamePhase[this.currentPhase]);
-    
+
     // Stop and destroy all animations FIRST
     if (this.currentBakingMinigameInstance) {
       console.log('  - Cleaning up baking minigame');
-      this.currentBakingMinigameInstance.cleanup();
+      try {
+        this.currentBakingMinigameInstance.cleanup();
+      } catch (e) {
+        console.warn('Error cleaning baking minigame:', e);
+      }
       this.currentBakingMinigameInstance = null;
     }
-    
+
     if (this.currentCleaningMinigame) {
       console.log('  - Cleaning up cleaning minigame');
-      this.currentCleaningMinigame.cleanup();
+      try {
+        this.currentCleaningMinigame.cleanup();
+      } catch (e) {
+        console.warn('Error cleaning cleaning minigame:', e);
+      }
       this.currentCleaningMinigame = null;
     }
-    
+
     if (this.postBakingAnimation) {
       console.log('  - Destroying post-baking animation');
-      this.postBakingAnimation.destroy();
+      try {
+        this.postBakingAnimation.destroy();
+      } catch (e) {
+        console.warn('Error destroying postBakingAnimation:', e);
+      }
       this.postBakingAnimation = null;
     }
-    
+
     if (this.newDayAnimation) {
       console.log('  - Destroying new day animation');
-      this.newDayAnimation.destroy();
+      try {
+        this.newDayAnimation.destroy();
+      } catch (e) {
+        console.warn('Error destroying newDayAnimation:', e);
+      }
       this.newDayAnimation = null;
     }
 
-    // Use removeChildren instead of destroyChildren to avoid destroying background
-    const children = this.layer.getChildren().slice(); // Clone array
+    // Remove (not destroy) children from layer so background/image nodes can be reused safely.
+    // Keep the backgroundImage attached if it currently exists on this.layer.
+    const children = this.layer.getChildren().slice(); // Clone array to avoid mutation issues during iteration
     children.forEach(child => {
-      // Don't destroy the background image
-      if (child !== this.backgroundImage) {
-        child.destroy();
+      try {
+        if (this.backgroundImage && child === this.backgroundImage) {
+          // skip removing the background if we want to keep it; leave in layer
+          return;
+        }
+        // remove() detaches node but keeps it valid for potential reuse
+        child.remove();
+      } catch (err) {
+        console.warn('Error removing child during cleanup:', err);
       }
     });
-    
+
+    // Ensure layer redraw so UI reflects cleanup
+    try {
+      this.layer.draw();
+    } catch (e) {
+      // defensive
+      console.warn('Error drawing layer after cleanup:', e);
+    }
+
     console.log('✅ Cleanup complete');
   }
 
   private renderCurrentPhase(): void {
     console.log('🎮 Rendering phase:', GamePhase[this.currentPhase]);
-    
+
     // Clean up before rendering new phase
     this.cleanupCurrentPhase();
 
     // Add background if needed (NOT for LOGIN or ANIMATION phases)
     const skipBackgroundPhases = [
-      GamePhase.LOGIN, 
-      GamePhase.POST_BAKING_ANIMATION, 
+      GamePhase.LOGIN,
+      GamePhase.POST_BAKING_ANIMATION,
       GamePhase.NEW_DAY_ANIMATION
     ];
-    
+
     if (this.backgroundImage && !skipBackgroundPhases.includes(this.currentPhase)) {
-      this.layer.add(this.backgroundImage);
-      this.backgroundImage.moveToBottom();
+      // Only add background if it isn't already attached to a parent layer
+      if (!this.backgroundImage.getParent()) {
+        this.layer.add(this.backgroundImage);
+      }
+      // Always move to bottom to keep UI ordered
+      try {
+        this.backgroundImage.moveToBottom();
+      } catch (e) {
+        // defensive: if moveToBottom fails, log and continue
+        console.warn('Could not move background to bottom:', e);
+      }
     }
 
     switch (this.currentPhase) {
@@ -194,8 +236,37 @@ export class GameManager {
           this.layer,
           this.player.currentDay,
           this.player.reputation,
-          (totalDemand) => {
+          (totalDemand, customerOrders) => {
             this.player.currentDayDemand = totalDemand;
+
+            // Validate customerOrders to avoid runtime errors in ShoppingScreen/modal onload
+            if (!Array.isArray(customerOrders)) {
+              console.error('OrderScreen returned invalid customerOrders (expected Array):', customerOrders);
+              // Try to coerce common shapes into array if possible, otherwise fallback to empty array
+              if (customerOrders && typeof customerOrders === 'object') {
+                // If the object contains an `orders` array, use it
+                if (Array.isArray((customerOrders as any).orders)) {
+                  this.customerOrders = (customerOrders as any).orders;
+                } else {
+                  // Try to convert object values to array of objects (best effort)
+                  try {
+                    const coerced = Object.values(customerOrders).filter((v) => v && typeof v === 'object');
+                    this.customerOrders = coerced.length ? (coerced as any) : [];
+                    if (this.customerOrders.length === 0) {
+                      console.warn('Coercion produced empty customerOrders; using [] fallback.');
+                    }
+                  } catch (e) {
+                    console.warn('Failed to coerce customerOrders; using empty array.', e);
+                    this.customerOrders = [];
+                  }
+                }
+              } else {
+                this.customerOrders = [];
+              }
+            } else {
+              this.customerOrders = customerOrders;
+            }
+
             this.previousPhase = this.currentPhase;
             this.currentPhase = GamePhase.RECIPE_BOOK;
             this.renderCurrentPhase();
@@ -294,11 +365,12 @@ export class GameManager {
     this.daySales = 0;
     this.dayExpenses = 0;
     this.dayTips = 0;
+    this.customerOrders = [];
   }
 
   private renderPostBakingAnimation(): void {
     console.log('Starting post-baking animation');
-    
+
     const IMAGE_PATHS = [
       '/20.png', '/21.png', '/22.png', '/23.png', '/24.png', '/25.png',
       '/26.png', '/27.png', '/28.png', '/29.png', '/30.png', '/31.png'
@@ -343,7 +415,7 @@ export class GameManager {
 
   private renderNewDayAnimation(): void {
     console.log('Starting new day animation');
-    
+
     const IMAGE_PATHS = [
       '/33.png', '/34.png', '/35.png', '/36.png', '/37.png', '/38.png',
       '/39.png', '/40.png', '/41.png', '/42.png', '/43.png', '/44.png',
@@ -396,6 +468,8 @@ export class GameManager {
       this.layer,
       this.player.funds,
       this.player.currentDay,
+      this.player.currentDayDemand, // ADDED: Keep track of day demand centrally to use it across pages
+      this.customerOrders,
       (purchases, totalCost) => {
         this.player.funds -= totalCost;
         this.dayExpenses += totalCost;

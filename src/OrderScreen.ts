@@ -5,24 +5,26 @@ import { InfoButton } from './ui/InfoButton';
 export class OrderScreen {
     private layer: Konva.Layer;
     private stage: Konva.Stage;
-    private onContinue: (totalDemand: number) => void; // <-- MODIFIED
+    private onContinue: (totalDemand: number, customerOrders: Array<{customerNum: number, cookieCount: number}>) => void;
     private currentDay: number;
     private reputation: number; 
-    private totalDemand: number = 0; // <-- ADDED THIS
+    private totalDemand: number = 0;
+    private customerOrders: Array<{customerNum: number, cookieCount: number}> = [];
+    private rootGroup: Konva.Group | null = null;
 
-    // --- MODIFIED CONSTRUCTOR ---
     constructor(
         stage: Konva.Stage, 
         layer: Konva.Layer, 
         currentDay: number, 
         reputation: number, 
-        onContinue: (totalDemand: number) => void // <-- MODIFIED
+        onContinue: (totalDemand: number, customerOrders: Array<{customerNum: number, cookieCount: number}>) => void
     ) {
         this.stage = stage;
         this.layer = layer;
         this.currentDay = currentDay;
         this.reputation = reputation; 
         this.onContinue = onContinue;
+
         this.setupUI();
     }
 
@@ -30,40 +32,46 @@ export class OrderScreen {
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
 
+        // Root group for all screen elements
+        this.rootGroup = new Konva.Group({ x: 0, y: 0 });
+        this.layer.add(this.rootGroup);
+
+        // Load owl image then build receipt + button
         this.loadOwlImage(stageWidth, stageHeight, () => {
-            // Once owl loads, add receipt + button
             this.createReceiptGroup(stageWidth, stageHeight);
             this.createContinueButton(stageWidth, stageHeight);
+            this.layer.batchDraw();
         });
 
-        //Exit Button
-        const exitButton = new ExitButton(this.stage, this.layer, () => {
+        // Exit & Info buttons
+        new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
-            window.location.href = '/login.hmtl'; //go to login page
+            window.location.href = '/login.html';
         });
+        new InfoButton(this.stage, this.layer);
 
-        //Info Button
-        const infoButton = new InfoButton(this.stage, this.layer);
-
-        this.layer.draw(); 
+        this.layer.batchDraw(); 
     }
 
     private loadOwlImage(stageWidth: number, stageHeight: number, onLoad: () => void): void {
         const imageObj = new Image();
         imageObj.onload = () => {
-            const aspectRatio = imageObj.width / imageObj.height;
+            const aspectRatio = imageObj.width / imageObj.height || 1;
             const owlWidth = stageWidth * 0.35;
             const owlHeight = owlWidth / aspectRatio;
 
             const owl = new Konva.Image({
                 x: stageWidth * 0.1,
-                y: stageHeight * 0.6 - (stageWidth * 0.25 / 2), 
+                y: stageHeight * 0.6 - (owlHeight / 2),
                 image: imageObj,
                 width: owlWidth,
                 height: owlHeight
             });
-            this.layer.add(owl);
-            this.layer.draw();
+
+            if (this.rootGroup) this.rootGroup.add(owl);
+            else this.layer.add(owl);
+
+            this.layer.batchDraw();
             onLoad();
         };
         imageObj.src = '/order-owl.png';
@@ -72,26 +80,16 @@ export class OrderScreen {
     private createReceiptGroup(stageWidth: number, stageHeight: number): void {
         const imageObj = new Image();
         imageObj.onload = () => {
-            const aspectRatio = imageObj.width / imageObj.height;
+            const aspectRatio = imageObj.width / imageObj.height || 1;
             const receiptWidth = stageWidth * 0.3;
             const receiptHeight = receiptWidth / aspectRatio;
-            const MAX_CUSTOMER_LINES = 7; // <-- NEW HARD LIMIT (TO KEEP FROM EXCEEDING RECEIPT BOUNDS)
+            const MAX_CUSTOMER_LINES = 7;
 
-            // Scaling constants based on receipt height
-            const V_PAD_HEADER = receiptHeight * 0.05;
-            const V_STEP_ORDER = receiptHeight * 0.035;
-
-            // X-axis constants to keep text in bounds of receipt
-            const X_PAD_LEFT = receiptWidth * 0.1;
-            const X_PAD_RIGHT = receiptWidth * 0.7;
-
-            // Create group to hold receipt and text
             const receiptGroup = new Konva.Group({
                 x: stageWidth * 0.6,
-                y: stageHeight * 0.15,
+                y: stageHeight * 0.15
             });
-            
-            // Create receipt image
+
             const receipt = new Konva.Image({
                 image: imageObj,
                 width: receiptWidth,
@@ -99,13 +97,12 @@ export class OrderScreen {
             });
             receiptGroup.add(receipt);
 
-            // Start currentY much lower to clear the static "TODAY'S ORDERS" text on the image.
-            let currentY = receiptHeight * 0.14; 
+            let currentY = receiptHeight * 0.14;
 
             const dayText = new Konva.Text({
-                x: receiptWidth * 0.1,
+                x: 0,
                 y: currentY,
-                width: receiptWidth * 0.8,
+                width: receiptWidth,
                 text: `DAY ${this.currentDay}`,
                 fontSize: Math.min(stageWidth * 0.015, 18),
                 fill: 'black',
@@ -114,57 +111,59 @@ export class OrderScreen {
                 fontStyle: 'bold'
             });
             receiptGroup.add(dayText);
-            
-            // Advance currentY based on the screen height to leave a gap before the orders start
+
             currentY += stageHeight * 0.04;
 
-            // --- Generate and Limit Customer Orders ---
-            this.totalDemand = 0; // Reset total
-            
-            // Generate raw customer count based on reputation
+            // --- Generate customer orders ---
+            this.totalDemand = 0;
+            this.customerOrders = [];
             const rawNumCustomers = Math.floor((Math.random() * 6 + 5) * this.reputation);
-            // Apply the hard limit
-            const numCustomers = Math.min(MAX_CUSTOMER_LINES, Math.max(1, rawNumCustomers)); 
-            
+            const numCustomers = Math.min(MAX_CUSTOMER_LINES, Math.max(1, rawNumCustomers));
+
             const fontSize = Math.min(stageWidth * 0.013, 15);
+            const LEFT_PADDING = 10;
+            const RIGHT_PADDING = 10;
 
             for (let i = 1; i <= numCustomers; i++) {
-                const cookieCount = Math.max(1, Math.floor((Math.random() * 31 + 6) * this.reputation)); 
-                this.totalDemand += cookieCount; 
+                const cookieCount = Math.max(1, Math.floor((Math.random() * 31 + 6) * this.reputation));
+                this.totalDemand += cookieCount;
 
-                // LEFT COLUMN (Customer Name)
+                this.customerOrders.push({ customerNum: i, cookieCount });
+
+                // Customer name (left)
                 const customerName = new Konva.Text({
-                    x: X_PAD_LEFT,
+                    x: LEFT_PADDING + (receiptWidth * 0.1),
                     y: currentY,
+                    width: receiptWidth * 0.6,
                     text: `${i}. CUSTOMER ${i}`,
-                    fontSize: fontSize,
+                    fontSize,
                     fontFamily: 'Doto',
-                    fill: 'black'
-                })
-                receiptGroup.add(customerName);
-                
-                // RIGHT COLUMN (Cookie Count)
-                const cookieCountText = new Konva.Text({
-                    x: X_PAD_RIGHT, 
-                    y: currentY,
-                    width: receiptWidth * 0.2, 
-                    text: `${cookieCount} COOKIES`,
-                    fontSize: fontSize, 
                     fill: 'black',
+                    align: 'left'
+                });
+                receiptGroup.add(customerName);
+
+                // Cookie count (right)
+                const cookieCountText = new Konva.Text({
+                    x: receiptWidth * 0.525 + LEFT_PADDING,
+                    y: currentY,
+                    width: receiptWidth * 0.35,
+                    text: `${cookieCount} COOKIES`,
+                    fontSize,
                     fontFamily: 'Doto',
+                    fill: 'black',
                     align: 'right'
                 });
                 receiptGroup.add(cookieCountText);
-                currentY += V_STEP_ORDER; // Tighter vertical advance
-            }
-            
-            // Calculate final TOTAL position based on where the list ended
-            const totalY = currentY + V_PAD_HEADER * 0.5; 
 
+                currentY += receiptHeight * 0.035;
+            }
+
+            // Total line
             const totalText = new Konva.Text({
-                x: receiptWidth * 0.1,
-                y: totalY,
-                width: receiptWidth * 0.8,
+                x: 0,
+                y: currentY + 5,
+                width: receiptWidth,
                 text: `TOTAL: ${this.totalDemand} COOKIES`,
                 fontSize: Math.min(stageWidth * 0.016, 18),
                 fontStyle: 'bold',
@@ -174,21 +173,22 @@ export class OrderScreen {
             });
             receiptGroup.add(totalText);
 
-            this.layer.add(receiptGroup);
-            this.layer.draw();
+            if (this.rootGroup) this.rootGroup.add(receiptGroup);
+            else this.layer.add(receiptGroup);
+
+            this.layer.batchDraw();
         };
 
-        imageObj.src = '/start-receipt.png'
+        imageObj.src = '/start-receipt.png';
     }
 
-    // --- MODIFIED createContinueButton ---
     private createContinueButton(stageWidth: number, stageHeight: number): void {
         const buttonWidth = Math.min(stageWidth * 0.25, 300);
         const buttonHeight = Math.min(stageHeight * 0.08, 60);
-     
+
         const buttonGroup = new Konva.Group({
-            x: (stageWidth - buttonWidth) / 2, 
-            y: (stageHeight * 0.15) + (stageHeight * 0.7) + (stageHeight * 0.02)
+            x: (stageWidth - buttonWidth) / 2,
+            y: stageHeight * 0.88
         });
 
         const rect = new Konva.Rect({
@@ -200,13 +200,7 @@ export class OrderScreen {
             shadowBlur: 5,
             shadowOpacity: 0.4,
             shadowOffsetX: 2,
-            shadowOffsetY: 2,
-            hitFunc: (context, shape) => {
-                context.beginPath();
-                context.rect(0, 0, shape.width(), shape.height());
-                context.closePath();
-                context.fillStrokeShape(shape); 
-            }
+            shadowOffsetY: 2
         });
 
         const text = new Konva.Text({
@@ -214,20 +208,25 @@ export class OrderScreen {
             height: buttonHeight,
             text: 'CONTINUE',
             fontSize: Math.min(stageWidth * 0.022, 28),
+            fontFamily: 'Press Start 2P',
             fill: 'white',
             align: 'center',
             verticalAlign: 'middle',
             fontStyle: 'bold',
-            listening: false 
+            listening: false
         });
 
         buttonGroup.add(rect);
         buttonGroup.add(text);
-        
-        // --- MODIFIED: Pass totalDemand on click ---
+
+        let clicked = false;
         buttonGroup.on('click', () => {
-            this.onContinue(this.totalDemand);
-        }); 
+            if (clicked) return;
+            clicked = true;
+            rect.fill('#2e7d32');
+            this.layer.batchDraw();
+            this.onContinue(this.totalDemand, this.customerOrders.map(o => ({ ...o })));
+        });
 
         rect.on('mouseenter', () => {
             this.stage.container().style.cursor = 'pointer';
@@ -240,9 +239,15 @@ export class OrderScreen {
             this.layer.batchDraw();
         });
 
-        this.layer.add(buttonGroup);
+        if (this.rootGroup) this.rootGroup.add(buttonGroup);
+        else this.layer.add(buttonGroup);
     }
-    
+
     public cleanup(): void {
+        if (this.rootGroup) {
+            this.rootGroup.remove();
+            this.rootGroup = null;
+        }
+        this.layer.batchDraw();
     }
 }

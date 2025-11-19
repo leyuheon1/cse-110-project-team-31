@@ -100,21 +100,21 @@ export class RecipeBookScreen {
             text: "Owl's Top-Secret Recipe",
             fontSize: Math.min(stageWidth * 0.035, 48),
             fontStyle: 'bold',
-            fontFamily: '"Georgia", serif',
+            fontFamily: 'Schoolbell',
             fill: '#333',
             align: 'center'
         });
         this.bookGroup.add(title);
         
         // --- 5. Data Content (3 Columns) ---
-        const contentLeftMargin = modalX + modalW * 0.2;
+        const contentLeftMargin = modalX + modalW * 0.15;
         const contentWidth = modalW * 0.75; 
         const baseFontSize = Math.min(stageWidth * 0.015, 20);
 
         // Define column widths for 3-column layout
         const col1Width = contentWidth * 0.5; // GOODIES
         const col3Width = contentWidth * 0.25; // NEED
-        const col4Width = contentWidth * 0.25; // GOT
+        const col4Width = contentWidth * 0.25; // HAVE
 
         // Define column start positions
         const col1X = contentLeftMargin;
@@ -127,16 +127,16 @@ export class RecipeBookScreen {
         // Headers
         this.bookGroup.add(new Konva.Text({
             x: col1X, y: headerY, text: 'GOODIES',
-            fontSize: baseFontSize, fontStyle: 'bold', fill: '#555', fontFamily: 'Arial, sans-serif'
+            fontSize: baseFontSize, fontStyle: 'bold', fill: '#555', fontFamily: 'Schoolbell'
         }));
         // --- COST Header REMOVED ---
         this.bookGroup.add(new Konva.Text({
             x: col3X, y: headerY, text: 'NEED',
-            fontSize: baseFontSize, fontStyle: 'bold', fill: '#555', fontFamily: 'Arial, sans-serif',
+            fontSize: baseFontSize, fontStyle: 'bold', fill: '#555', fontFamily: 'Schoolbell',
             width: col3Width, align: 'right'
         }));
         this.bookGroup.add(new Konva.Text({
-            x: col4X, y: headerY, text: 'GOT',
+            x: col4X, y: headerY, text: 'HAVE',
             fontSize: baseFontSize, fontStyle: 'bold', fill: '#555', fontFamily: 'Arial, sans-serif',
             width: col4Width, align: 'right'
         }));
@@ -159,7 +159,7 @@ export class RecipeBookScreen {
             // Col 1: Ingredient Name
             this.bookGroup.add(new Konva.Text({
                 x: col1X, y: currentY, text: ingredientDisplay,
-                fontSize: baseFontSize, fill: 'black', fontFamily: 'Arial, sans-serif'
+                fontSize: baseFontSize, fill: 'black', fontFamily: 'Schoolbell'
             }));
             
             // --- Col 2: Price REMOVED ---
@@ -167,7 +167,7 @@ export class RecipeBookScreen {
             // Col 3: Needed Amount
             this.bookGroup.add(new Konva.Text({
                 x: col3X, y: currentY, text: String(needed),
-                fontSize: baseFontSize, fill: 'black', fontFamily: 'Arial, sans-serif',
+                fontSize: baseFontSize, fill: 'black', fontFamily: 'Schoolbell',
                 width: col3Width, align: 'right'
             }));
             
@@ -202,6 +202,7 @@ export class RecipeBookScreen {
             height: buttonHeight,
             text: 'BUY INGREDIENTS',
             fontSize: Math.min(stageWidth * 0.022, 24),
+            fontFamily: 'Press Start 2P',
             fill: 'white',
             align: 'center',
             verticalAlign: 'middle',

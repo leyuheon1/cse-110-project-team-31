@@ -1,7 +1,7 @@
     Owl receives a new order list showing how many cookies each customer wants to buy.
     Your goal is to figure out how much of each ingredient you'll need to bake the correct number of cookies.
 
-Tips for Succes:
+Tips for Success:
     - Read the order list carfully, every number matters!
     - Calculate the total ingredients needed before you start buying your ingredients.
 
