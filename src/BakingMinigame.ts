@@ -11,18 +11,23 @@ export class BakingMinigame {
     private config = ConfigManager.getInstance().getConfig();
 
     private timeRemaining: number;
-    private currentProblem: { question: string; answer: number };
+
+    // ADDED '!' HERE
+    private currentProblem!: { question: string; answer: number };
     private correctAnswers: number = 0; 
     private totalProblems: number = 0; 
     private cookiesSold: number; 
 
     private minigameUIGroup: Konva.Group; 
     private choiceUIGroup: Konva.Group; 
-    private timerText: Konva.Text;
-    private problemText: Konva.Text;
-    private scoreText: Konva.Text; 
-    private feedbackText: Konva.Text;
-    private inputText: Konva.Text;
+    
+    // ADDED '!' TO THESE UI ELEMENTS
+    private timerText!: Konva.Text;
+    private problemText!: Konva.Text;
+    private scoreText!: Konva.Text; 
+    private feedbackText!: Konva.Text;
+    private inputText!: Konva.Text;
+    
     private userInput: string = '';
 
     private timerInterval: number | null = null;
@@ -80,24 +85,16 @@ export class BakingMinigame {
         const stageHeight = this.stage.height();
 
         const title = new Konva.Text({
-            x: stageWidth * 0.05,
+            x: 0,
             y: stageHeight * 0.05,
+            width: stageWidth,
             text: 'Baking Minigame - Solve Problems for Tips!', 
             fontSize: Math.min(stageWidth * 0.028, 34),
             fill: '#2c3e50',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center'
         });
         this.minigameUIGroup.add(title);
-
-        this.timerText = new Konva.Text({
-            x: stageWidth * 0.75,
-            y: stageHeight * 0.05,
-            text: `Time: ${this.timeRemaining}s`,
-            fontSize: Math.min(stageWidth * 0.024, 28),
-            fill: '#27ae60',
-            fontStyle: 'bold'
-        });
-        this.minigameUIGroup.add(this.timerText);
 
         this.scoreText = new Konva.Text({
             x: stageWidth * 0.05,
@@ -109,22 +106,26 @@ export class BakingMinigame {
         this.minigameUIGroup.add(this.scoreText);
 
         this.problemText = new Konva.Text({
-            x: stageWidth * 0.4,
+            x: 0,
             y: stageHeight * 0.3,
+            width: stageWidth,
             text: '',
             fontSize: Math.min(stageWidth * 0.048, 58),
             fill: '#2c3e50',
             fontStyle: 'bold',
-            align: 'center',
-            width: stageWidth * 0.2
+            align: 'center'
         });
         this.minigameUIGroup.add(this.problemText);
 
+        // Input Box
+        const inputBoxY = stageHeight * 0.45;
+        const inputBoxHeight = stageHeight * 0.08;
+        
         const inputBox = new Konva.Rect({
             x: stageWidth * 0.35,
-            y: stageHeight * 0.45,
+            y: inputBoxY,
             width: stageWidth * 0.3,
-            height: stageHeight * 0.08,
+            height: inputBoxHeight,
             fill: '#ecf0f1',
             stroke: '#3498db',
             strokeWidth: 3,
@@ -133,35 +134,50 @@ export class BakingMinigame {
         this.minigameUIGroup.add(inputBox);
 
         this.inputText = new Konva.Text({
-            x: stageWidth * 0.36,
-            y: stageHeight * 0.45 + (stageHeight * 0.08 * 0.2),
+            x: stageWidth * 0.35,
+            y: inputBoxY + (inputBoxHeight * 0.2),
             text: '',
             fontSize: Math.min(stageWidth * 0.036, 44),
             fill: '#2c3e50',
-            width: stageWidth * 0.28,
+            width: stageWidth * 0.3,
             align: 'center'
         });
         this.minigameUIGroup.add(this.inputText);
 
+        // TIMER - MOVED TO CENTER, BELOW INPUT
+        this.timerText = new Konva.Text({
+            x: 0,
+            y: inputBoxY + inputBoxHeight + 20, // approx 0.55 height
+            width: stageWidth,
+            text: `Time: ${this.timeRemaining}s`,
+            fontSize: Math.min(stageWidth * 0.024, 28),
+            fill: '#27ae60',
+            fontStyle: 'bold',
+            align: 'center'
+        });
+        this.minigameUIGroup.add(this.timerText);
+
+        // FEEDBACK - MOVED DOWN
         this.feedbackText = new Konva.Text({
-            x: stageWidth * 0.4,
-            y: stageHeight * 0.58,
+            x: 0,
+            y: inputBoxY + inputBoxHeight + 60, // approx 0.62 height
+            width: stageWidth,
             text: '',
             fontSize: Math.min(stageWidth * 0.028, 34),
             fill: '#27ae60',
-            align: 'center',
-            width: stageWidth * 0.2
+            align: 'center'
         });
         this.minigameUIGroup.add(this.feedbackText);
 
+        // INSTRUCTIONS - MOVED DOWN
         const instructions = new Konva.Text({
-            x: stageWidth * 0.3,
-            y: stageHeight * 0.7,
+            x: 0,
+            y: stageHeight * 0.75,
+            width: stageWidth,
             text: 'Type your answer and press ENTER',
             fontSize: Math.min(stageWidth * 0.018, 22),
             fill: '#7f8c8d',
-            align: 'center',
-            width: stageWidth * 0.4
+            align: 'center'
         });
         this.minigameUIGroup.add(instructions);
 
@@ -179,7 +195,6 @@ export class BakingMinigame {
         );
     }
     
-    // --- THIS IS THE VISUAL FIX ---
     private showPlaySkipChoice(): void {
         if (this.animationPlayer) {
             this.animationPlayer.destroy();
@@ -241,7 +256,7 @@ export class BakingMinigame {
             y: subTitle.y() + subTitle.height() + modalHeight * 0.05, 
             width: modalWidth * 0.8, 
             text: newBodyText,
-            fontSize: Math.min(stageWidth * 0.022, 26), // <-- CHANGED: Made font bigger
+            fontSize: Math.min(stageWidth * 0.022, 26), 
             fill: '#333', 
             align: 'center', 
             lineHeight: 1.6,
@@ -252,11 +267,10 @@ export class BakingMinigame {
 
         const promptText = new Konva.Text({
             x: modalX, 
-            // <-- CHANGED: Positioned dynamically after explainText
             y: explainText.y() + explainText.height() + modalHeight * 0.04, 
             width: modalWidth, 
             text: 'Would you like to play?', 
-            fontSize: Math.min(stageWidth * 0.022, 22), // <-- NOTE: Kept this size, you can increase it too
+            fontSize: Math.min(stageWidth * 0.022, 22), 
             fill: '#E67E22', 
             align: 'center',
             fontFamily: '"Nunito"', 
@@ -268,10 +282,9 @@ export class BakingMinigame {
         const playButtonHeight = modalHeight * 0.15;
         const playButtonX = modalX + modalWidth * 0.3 - playButtonWidth / 2; 
         
-        // <-- CHANGED: Button Y position is now DYNAMIC, placed after promptText
         const playButtonY = promptText.y() + promptText.height() + modalHeight * 0.05;
 
-        const playButtonGroup = new Konva.Group({ x: playButtonX, y: playButtonY }); // <-- CHANGED
+        const playButtonGroup = new Konva.Group({ x: playButtonX, y: playButtonY }); 
         const playRect = new Konva.Rect({
             width: playButtonWidth, height: playButtonHeight, fill: '#90EE90',
             cornerRadius: 10, stroke: '#2E8B57', strokeWidth: 3,
@@ -297,9 +310,9 @@ export class BakingMinigame {
         const skipButtonWidth = playButtonWidth;
         const skipButtonHeight = playButtonHeight;
         const skipButtonX = modalX + modalWidth * 0.7 - skipButtonWidth / 2; 
-        const skipButtonY = playButtonY; // <-- NEW: Make skip button share the same Y
+        const skipButtonY = playButtonY; 
 
-        const skipButtonGroup = new Konva.Group({ x: skipButtonX, y: skipButtonY }); // <-- CHANGED
+        const skipButtonGroup = new Konva.Group({ x: skipButtonX, y: skipButtonY }); 
         const skipRect = new Konva.Rect({
             width: skipButtonWidth, height: skipButtonHeight, fill: '#F08080',
             cornerRadius: 10, stroke: '#CD5C5C', strokeWidth: 3,

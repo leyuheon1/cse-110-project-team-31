@@ -426,7 +426,7 @@ private updateBackgroundMusic(): void {
       },
       onReturnHome: () => {
         this.previousPhase = GamePhase.VICTORY;
-        this.currentPhase = GamePhase.HOW_TO_PLAY;
+        this.currentPhase = GamePhase.LOGIN;
         this.resetGame(); // Reset game state
         this.renderCurrentPhase();
       },
@@ -442,17 +442,11 @@ private updateBackgroundMusic(): void {
     new LoseScreen(this.stage, this.layer, {
       cashBalance: this.player.funds,
       totalDaysPlayed: this.player.currentDay,
-      onExit: () => {
+      onReturnHome: () => {
         this.previousPhase = GamePhase.DEFEAT;
         this.backgroundImage?.remove();   
         this.layer.draw();
         this.currentPhase = GamePhase.LOGIN;
-        this.resetGame(); // Reset game state
-        this.renderCurrentPhase();
-      },
-      onRetry: () => {
-        this.previousPhase = GamePhase.DEFEAT;
-        this.currentPhase = GamePhase.HOW_TO_PLAY;
         this.resetGame(); // Reset game state
         this.renderCurrentPhase();
       },

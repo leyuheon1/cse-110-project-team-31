@@ -10,19 +10,22 @@ export class CleaningMinigame {
     private config = ConfigManager.getInstance().getConfig();
     
     private timeRemaining: number;
-    private currentProblem: { question: string; answer: number };
+    
+    // Fixed: Added '!' to tell TypeScript these are initialized in setupUI
+    private currentProblem!: { question: string; answer: number };
     private correctAnswers: number = 0;
     private totalProblems: number = 0;
 
-    // --- UI Groups ---
     private minigameUIGroup: Konva.Group;
     private choiceUIGroup: Konva.Group;
     
-    private timerText: Konva.Text;
-    private problemText: Konva.Text;
-    private scoreText: Konva.Text;
-    private feedbackText: Konva.Text;
-    private inputText: Konva.Text;
+    // Fixed: Added '!' here as well
+    private timerText!: Konva.Text;
+    private problemText!: Konva.Text;
+    private scoreText!: Konva.Text;
+    private feedbackText!: Konva.Text;
+    private inputText!: Konva.Text;
+    
     private userInput: string = '';
     
     private timerInterval: number | null = null;
@@ -30,10 +33,9 @@ export class CleaningMinigame {
     private keyboardHandler: (e: KeyboardEvent) => void;
 
     private totalDishesToClean: number;
-    private originalTotalDishes: number; // <--- ADDED: To remember the real amount
+    private originalTotalDishes: number;
     private dishesCleaned: number = 0;
 
-    // --- CONSTANTS ---
     private readonly TARGET_DISHES = 5;
 
     constructor(
@@ -45,10 +47,7 @@ export class CleaningMinigame {
         this.stage = stage;
         this.layer = layer;
         
-        // Store the REAL total so we can report it back later
         this.originalTotalDishes = totalDishesToClean; 
-        
-        // Internally, we only care about the target 5
         this.totalDishesToClean = this.TARGET_DISHES;
         
         this.onComplete = onComplete;
@@ -176,26 +175,20 @@ export class CleaningMinigame {
     }
 
     private setupUI(): void {
+        const stageWidth = this.stage.width();
+        const stageHeight = this.stage.height();
+
         const title = new Konva.Text({
-            x: 50,
+            x: 0,
             y: 30,
+            width: stageWidth,
             text: 'Cleaning Dishes - Solve Multiplication Problems!',
             fontSize: 28,
             fill: '#16a085',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center'
         });
         this.minigameUIGroup.add(title);
-
-        // Timer shifted down to avoid overlap
-        this.timerText = new Konva.Text({
-            x: 1400,
-            y: 100, 
-            text: `Time: ${this.timeRemaining}s`,
-            fontSize: 24,
-            fill: '#27ae60',
-            fontStyle: 'bold'
-        });
-        this.minigameUIGroup.add(this.timerText);
 
         this.scoreText = new Konva.Text({
             x: 50,
@@ -207,7 +200,7 @@ export class CleaningMinigame {
         this.minigameUIGroup.add(this.scoreText);
 
         const dishText = new Konva.Text({
-            x: 700,
+            x: stageWidth / 2 - 40,
             y: 150,
             text: '🍽️',
             fontSize: 80
@@ -215,22 +208,26 @@ export class CleaningMinigame {
         this.minigameUIGroup.add(dishText);
 
         this.problemText = new Konva.Text({
-            x: 650,
-            y: 300,
+            x: 0,
+            y: 250,
+            width: stageWidth,
             text: '',
             fontSize: 48,
             fill: '#2c3e50',
             fontStyle: 'bold',
-            align: 'center',
-            width: 300
+            align: 'center'
         });
         this.minigameUIGroup.add(this.problemText);
 
+        // Input Box
+        const inputBoxWidth = 400;
+        const inputBoxY = 350;
+        const inputBoxHeight = 70;
         const inputBox = new Konva.Rect({
-            x: 600,
-            y: 400,
-            width: 400,
-            height: 70,
+            x: (stageWidth - inputBoxWidth) / 2,
+            y: inputBoxY,
+            width: inputBoxWidth,
+            height: inputBoxHeight,
             fill: '#ffffff',
             stroke: '#16a085',
             strokeWidth: 4,
@@ -242,46 +239,62 @@ export class CleaningMinigame {
         this.minigameUIGroup.add(inputBox);
 
         this.inputText = new Konva.Text({
-            x: 610,
-            y: 418,
+            x: (stageWidth - inputBoxWidth) / 2 + 10,
+            y: inputBoxY + 18,
             text: '',
             fontSize: 36,
             fill: '#2c3e50',
-            width: 380,
+            width: inputBoxWidth - 20,
             align: 'center'
         });
         this.minigameUIGroup.add(this.inputText);
 
+        // Timer - Moved BELOW the input box
+        this.timerText = new Konva.Text({
+            x: 0,
+            y: inputBoxY + inputBoxHeight + 15, // Approx y = 435
+            width: stageWidth,
+            text: `Time: ${this.timeRemaining}s`,
+            fontSize: 24,
+            fill: '#27ae60',
+            fontStyle: 'bold',
+            align: 'center'
+        });
+        this.minigameUIGroup.add(this.timerText);
+
+        // Feedback - Moved down to avoid overlap with timer
         this.feedbackText = new Konva.Text({
-            x: 650,
-            y: 520,
+            x: 0,
+            y: inputBoxY + inputBoxHeight + 60, // Approx y = 480
+            width: stageWidth,
             text: '',
             fontSize: 32,
             fill: '#27ae60',
             align: 'center',
-            width: 300,
             fontStyle: 'bold'
         });
         this.minigameUIGroup.add(this.feedbackText);
 
         const instructions = new Konva.Text({
-            x: 550,
-            y: 650,
+            x: 0,
+            y: stageHeight - 150,
+            width: stageWidth,
             text: 'Type your answer and press ENTER to clean a dish!',
             fontSize: 20,
             fill: '#7f8c8d',
-            align: 'center',
-            width: 500
+            align: 'center'
         });
         this.minigameUIGroup.add(instructions);
 
         const dirtyDishesText = new Konva.Text({
-            x: 50,
-            y: 850,
+            x: 0,
+            y: stageHeight - 100,
+            width: stageWidth,
             text: 'Dirty dishes remaining will limit tomorrow\'s capacity!',
             fontSize: 18,
             fill: '#e74c3c',
-            fontStyle: 'italic'
+            fontStyle: 'italic',
+            align: 'center'
         });
         this.minigameUIGroup.add(dirtyDishesText);
 
@@ -396,7 +409,6 @@ export class CleaningMinigame {
         }, 1000);
     }
 
-    // --- UPDATED METHOD ---
     private endMinigame(skipped: boolean = false): void {
         if (this.timerInterval !== null) {
             clearInterval(this.timerInterval);
@@ -405,9 +417,6 @@ export class CleaningMinigame {
 
         window.removeEventListener('keydown', this.keyboardHandler);
 
-        // MAGIC TRICK:
-        // If you finished the 5 dishes successfully, we report the REAL ORIGINAL total
-        // so the game thinks you did 100% of the work.
         let finalReportedAnswers = this.correctAnswers;
         
         if (!skipped && this.dishesCleaned >= this.TARGET_DISHES) {
