@@ -57,8 +57,7 @@ For detailed information about architecture, configuration, and development prog
 
 ```bash
 git clone <repository-url>
-npm install konva
-npm install --save-dev typescript vite
+npm install
 ```
 
 ---
