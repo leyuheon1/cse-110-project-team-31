@@ -113,6 +113,8 @@ export class LoginScreen {
         });
         this.layer.add(this.inputText);
 
+        this.inputText.listening(false); // NEW: make inputText transparent to pointer events
+
         // Change cursor to pointer when hovering over input box
         this.inputBox.on('mouseenter', () => {
             this.stage.container().style.cursor = 'text'; // text cursor
