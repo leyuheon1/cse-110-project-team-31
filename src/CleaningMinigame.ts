@@ -53,7 +53,7 @@ export class CleaningMinigame {
         this.totalDishesToClean = this.TARGET_DISHES;
         
         this.onComplete = onComplete;
-        this.timeRemaining = 20;
+        this.timeRemaining = this.config.cleaningTime;
         
         this.keyboardHandler = this.handleKeyPress.bind(this);
         
@@ -470,3 +470,4 @@ export class CleaningMinigame {
     }
 
 }
+
