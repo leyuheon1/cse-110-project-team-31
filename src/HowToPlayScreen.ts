@@ -5,26 +5,52 @@ export class HowToPlayScreen {
     private layer: Konva.Layer;
     private stage: Konva.Stage;
     private onStartGame: () => void;
+    private animationFrameId: number | null = null;
+    private currentRenderId: number = 0; // Tracks the current valid render pass
 
     constructor(stage: Konva.Stage, layer: Konva.Layer, onStartGame: () => void) {
         this.stage = stage;
         this.layer = layer;
         this.onStartGame = onStartGame;
         this.setupUI();
+        
+        // Add the listener correctly
+        window.addEventListener('resize', this.handleResize);
     }
 
+    // FIX 1: Defined as an arrow function property so 'this' is preserved 
+    // and we can remove it correctly in cleanup()
+    private handleResize = (): void => {
+        // Cancel any pending frame to prevent stacking
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+        }
+
+        // FIX 2: Use requestAnimationFrame instead of setTimeout.
+        // This updates INSTANTLY (60fps) so the background never disappears.
+        this.animationFrameId = requestAnimationFrame(() => {
+            this.layer.destroyChildren();
+            this.setupUI();
+        });
+    };
+
     private setupUI(): void {
+        // Increment render ID. Old async text loads will see this changed and stop.
+        this.currentRenderId++;
+        const myRenderId = this.currentRenderId;
+
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
 
-        // Modal box
+        // Dimensions
         const modalX = stageWidth * 0.1;
-        const modalY = stageHeight * 0.1;
+        const modalY = stageHeight * 0.125;
         const modalW = stageWidth * 0.8;
-        const modalH = stageHeight * 0.7;
+        const modalH = stageHeight * 0.75; 
 
         const modalGroup = new Konva.Group();
 
+        // Paper Background
         const paper = new Konva.Rect({
             x: modalX,
             y: modalY,
@@ -40,6 +66,7 @@ export class HowToPlayScreen {
             shadowOpacity: 0.35
         });
 
+        // Gloss/Highlight
         const highlight = new Konva.Rect({
             x: modalX,
             y: modalY,
@@ -53,23 +80,16 @@ export class HowToPlayScreen {
             opacity: 0.6
         });
 
-        const crease = new Konva.Line({
-            points: [modalX + 16, modalY + modalH * 0.45, modalX + modalW - 16, modalY + modalH * 0.45],
-            stroke: 'rgba(0,0,0,0.08)',
-            strokeWidth: 2,
-            listening: false
-        });
-
-        modalGroup.add(paper, highlight, crease);
+        modalGroup.add(paper, highlight);
         this.layer.add(modalGroup);
 
         // Title
         const title = new Konva.Text({
             x: modalX,
-            y: modalY + 20,
+            y: modalY + 30,
             width: modalW,
             text: 'HOW TO PLAY',
-            fontSize: Math.min(stageWidth * 0.08, 40),
+            fontSize: Math.min(stageWidth * 0.06, 36),
             fontStyle: 'bold',
             fontFamily: 'Press Start 2P',
             fill: 'black',
@@ -77,80 +97,142 @@ export class HowToPlayScreen {
         });
         this.layer.add(title);
 
-        // Load instructions
-        this.loadInstructions(stageWidth, stageHeight);
+        // Load instructions (Async)
+        this.loadInstructions(stageWidth, stageHeight, modalY, modalH, myRenderId);
 
         // Start button
-        this.createStartButton(stageWidth, stageHeight);
+        this.createStartButton(stageWidth, stageHeight, modalY, modalH);
 
         // Exit button
         new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
-            window.location.href = '/login.html'; // fixed typo
+            window.location.href = '/login.html';
         });
 
         this.layer.draw();
     }
 
-    private async loadInstructions(stageWidth: number, stageHeight: number): Promise<void> {
+    private async loadInstructions(
+        stageWidth: number, 
+        stageHeight: number, 
+        modalY: number, 
+        modalH: number, 
+        renderId: number
+    ): Promise<void> {
         try {
             const response = await fetch('/howtoplay.txt');
             let text = await response.text();
 
-            // Remove extra indentation and empty lines
+            // FIX 3: renderId Check
+            // If the user resized the window while we were fetching, this ID will not match.
+            // We stop immediately to prevent adding text to a destroyed/new layer.
+            if (this.currentRenderId !== renderId) {
+                return;
+            }
+
             text = text
                 .split('\n')
                 .map(line => line.trim())
                 .filter(line => line.length > 0)
                 .join('\n');
+            text = text.replace(/Tips for Success:/gi, 'TIPS FOR SUCCESS');
 
             const textBoxX = stageWidth * 0.15;
-            const textBoxY = stageHeight * 0.22;
+            const textBoxY = modalY + (modalH * 0.18); 
             const textBoxWidth = stageWidth * 0.7;
-            const textBoxHeight = stageHeight * 0.45;
+            
+            const lineHeight = 1.4; 
+            const fontSize = Math.min(stageWidth * 0.022, 20);
 
-            const instructions = new Konva.Text({
-                x: textBoxX,
-                y: textBoxY,
-                width: textBoxWidth,
-                height: textBoxHeight,
-                text,
-                fontSize: Math.min(stageWidth * 0.02, 20),
-                fontFamily: 'VT323, monospace',
-                fill: 'black',
-                lineHeight: 1.6,
-                wrap: 'word',
-                align: 'left',
-                padding: 10
-            });
+            const hasTips = text.includes('TIPS FOR SUCCESS');
+            
+            if (hasTips) {
+                const parts = text.split('TIPS FOR SUCCESS');
+                
+                const mainInstructions = new Konva.Text({
+                    x: textBoxX,
+                    y: textBoxY,
+                    width: textBoxWidth,
+                    text: parts[0],
+                    fontSize: fontSize,
+                    fontFamily: 'Nunito, sans-serif',
+                    fill: '#2C3E50',
+                    lineHeight: lineHeight,
+                    wrap: 'word',
+                    align: 'center',
+                    padding: 5
+                });
 
-            this.layer.add(instructions);
+                const mainHeight = mainInstructions.height();
+
+                const tipsHeader = new Konva.Text({
+                    x: textBoxX,
+                    y: textBoxY + mainHeight + 5,
+                    width: textBoxWidth,
+                    text: 'TIPS FOR SUCCESS',
+                    fontSize: fontSize + 2,
+                    fontFamily: 'Press Start 2P',
+                    fontStyle: 'bold',
+                    fill: '#FFAA00',
+                    align: 'center',
+                    shadowColor: '#FFD700',
+                    shadowBlur: 2,
+                    shadowOpacity: 0.5
+                });
+
+                const tipsContent = new Konva.Text({
+                    x: textBoxX,
+                    y: textBoxY + mainHeight + tipsHeader.height() + 5,
+                    width: textBoxWidth,
+                    text: parts[1],
+                    fontSize: fontSize,
+                    fontFamily: 'Nunito, sans-serif',
+                    fill: '#2C3E50',
+                    lineHeight: lineHeight,
+                    wrap: 'word',
+                    align: 'center',
+                    padding: 5
+                });
+
+                this.layer.add(mainInstructions);
+                this.layer.add(tipsHeader);
+                this.layer.add(tipsContent);
+            } else {
+                const instructions = new Konva.Text({
+                    x: textBoxX,
+                    y: textBoxY,
+                    width: textBoxWidth,
+                    text,
+                    fontSize: fontSize,
+                    fontFamily: 'Nunito, sans-serif',
+                    fill: '#2C3E50',
+                    lineHeight: lineHeight,
+                    wrap: 'word',
+                    align: 'center',
+                    padding: 5
+                });
+                this.layer.add(instructions);
+            }
+
+            // Draw the layer again to show the text
             this.layer.draw();
+
         } catch (error) {
-            console.error('Could not load instructions:', error);
-
-            const fallback = new Konva.Text({
-                x: stageWidth * 0.15,
-                y: stageHeight * 0.25,
-                width: stageWidth * 0.7,
-                text: 'Instructions could not be loaded.\n\nClick START GAME to begin!',
-                fontSize: Math.min(stageWidth * 0.02, 24),
-                fill: 'red',
-                lineHeight: 1.8,
-                align: 'center'
-            });
-            this.layer.add(fallback);
-            this.layer.draw();
+            if (this.currentRenderId === renderId) {
+                console.error('Could not load instructions:', error);
+            }
         }
     }
 
-    private createStartButton(stageWidth: number, stageHeight: number): void {
+    private createStartButton(stageWidth: number, stageHeight: number, modalY: number, modalH: number): void {
         const buttonWidth = Math.min(stageWidth * 0.25, 300);
         const buttonHeight = Math.min(stageHeight * 0.08, 60);
 
+        const buttonY = (modalY + modalH) - buttonHeight - 30;
+
         const buttonGroup = new Konva.Group({
             x: (stageWidth - buttonWidth) / 2,
-            y: stageHeight * 0.72
+            y: buttonY
         });
 
         const rect = new Konva.Rect({
@@ -191,6 +273,10 @@ export class HowToPlayScreen {
     }
 
     public cleanup(): void {
-        // Cleanup if needed
+        // FIX 4: Correctly remove the specific listener function
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+        }
+        window.removeEventListener('resize', this.handleResize);
     }
 }
