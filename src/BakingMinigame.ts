@@ -4,6 +4,7 @@ import { ConfigManager } from './config';
 import { AnimationPlayer } from './AnimationPlayer'; 
 import { ExitButton } from './ui/ExitButton';
 import { InfoButton } from './ui/InfoButton';
+import { ShuffleButton } from './ui/ShuffleButton';
 
 export class BakingMinigame {
     private layer: Konva.Layer;
@@ -27,6 +28,7 @@ export class BakingMinigame {
     private scoreText!: Konva.Text; 
     private feedbackText!: Konva.Text;
     private inputText!: Konva.Text;
+    private shuffleButton!: ShuffleButton;
     
     private userInput: string = '';
 
@@ -193,6 +195,34 @@ export class BakingMinigame {
             this.layer,
             'Solve as many division problems as you can within the time limit to earn bonus tips! \n\nType your answer and press ENTER. \n\nEach correct answer gives you $1 tip. \nGood luck!'
         );
+
+        // Shuffle button to the right of input box
+        this.shuffleButton = new ShuffleButton(
+            this.stage,
+            this.layer,
+            this.minigameUIGroup,
+            stageWidth * 0.3, // inputBoxWidth
+            inputBoxY,
+            inputBoxHeight,
+            () => this.shuffleProblem(),
+            50 // spacing
+        );
+    }
+
+    private shuffleProblem(): void {
+        // Clear user input
+        this.userInput = '';
+        this.updateInputDisplay();
+        
+        // Clear any feedback
+        if (this.feedbackText) {
+            this.feedbackText.text('');
+        }
+        
+        // Generate new problem
+        this.generateNewProblem();
+        
+        this.layer.draw();
     }
     
     private showPlaySkipChoice(): void {

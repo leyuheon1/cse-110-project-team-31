@@ -3,6 +3,7 @@ import { MinigameResult } from './types';
 import { ConfigManager } from './config';
 import { ExitButton } from './ui/ExitButton'; 
 import { InfoButton } from './ui/InfoButton';
+import { ShuffleButton } from './ui/ShuffleButton';
 
 export class CleaningMinigame {
     private layer: Konva.Layer;
@@ -25,6 +26,7 @@ export class CleaningMinigame {
     private scoreText!: Konva.Text;
     private feedbackText!: Konva.Text;
     private inputText!: Konva.Text;
+    private shuffleButton!: ShuffleButton;
     
     private userInput: string = '';
     
@@ -51,7 +53,7 @@ export class CleaningMinigame {
         this.totalDishesToClean = this.TARGET_DISHES;
         
         this.onComplete = onComplete;
-        this.timeRemaining = 15;
+        this.timeRemaining = this.config.cleaningTime;
         
         this.keyboardHandler = this.handleKeyPress.bind(this);
         
@@ -308,6 +310,32 @@ export class CleaningMinigame {
             this.layer,
             'Solve as many multiplication problems as you can within the time limit to clean dishes! Type your answer and press ENTER. Each correct answer cleans one dish. Clean all 5 dishes to maximize your reputation!'
         );
+
+        // Shuffle button to the right of input box
+        this.shuffleButton = new ShuffleButton(
+            this.stage,
+            this.layer,
+            this.minigameUIGroup,
+            inputBoxWidth,
+            inputBoxY,
+            inputBoxHeight,
+            () => this.shuffleProblem(),
+            50 // spacing
+        );
+    }
+
+    private shuffleProblem(): void {
+        // Clear user input
+        this.userInput = '';
+        this.updateInputDisplay();
+        
+        // Clear any feedback
+        this.feedbackText.text('');
+        
+        // Generate new problem
+        this.generateNewProblem();
+        
+        this.layer.draw();
     }
 
     private generateNewProblem(): void {
@@ -440,4 +468,6 @@ export class CleaningMinigame {
         this.minigameUIGroup.destroy();
         this.choiceUIGroup.destroy();
     }
+
 }
+

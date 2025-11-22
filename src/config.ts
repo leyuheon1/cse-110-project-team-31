@@ -7,7 +7,7 @@ export class ConfigManager {
     private constructor() {
         // Default values
         this.config = {
-            startingFunds: 250,
+            startingFunds: 500,
             winThreshold: 2000,
             bankruptcyThreshold: 0,
             flourPriceMin: 5,

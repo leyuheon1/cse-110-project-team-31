@@ -53,7 +53,8 @@ export class ShoppingScreen {
       purchases: Map<string, number>,
       totalCost: number
     ) => void,
-    onViewRecipe: () => void
+    onViewRecipe: () => void,
+    savedInputValues: Map<string, string> | undefined = undefined //New Parameter for saving input values
   ) {
     this.stage = stage;
     this.layer = layer;
@@ -65,6 +66,15 @@ export class ShoppingScreen {
     this.onViewRecipe = onViewRecipe;
     this.keyboardHandler = this.handleKeyPress.bind(this);
 
+    //restore saved values if provided
+    if(savedInputValues){
+      this.ingredients.forEach(ingredient => {
+        const savedValue = savedInputValues.get(ingredient.name);
+        if(savedValue !== undefined){
+          ingredient.inputValue = savedValue;
+        }
+      });
+    }
     this.setupUI();
     this.setupKeyboardInput();
   }
@@ -315,6 +325,8 @@ export class ShoppingScreen {
     text.listening(false);
 
     rect.on("click", () => {
+      //save current input state before navigating away
+      const currentValues = this.getIngredientValues();
       this.cleanup();
       this.onViewRecipe();
     });
@@ -735,5 +747,14 @@ export class ShoppingScreen {
 
   public cleanup(): void {
     window.removeEventListener("keydown", this.keyboardHandler);
+  }
+
+  //helper function to get current input values for all ingredients
+  public getIngredientValues(): Map<string, string>{
+    const value = new Map<string, string>();
+    this.ingredients.forEach(ingredient => {
+      value.set(ingredient.name, ingredient.inputValue);
+    });
+    return value;
   }
 }
