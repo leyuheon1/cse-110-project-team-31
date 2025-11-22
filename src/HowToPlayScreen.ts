@@ -6,36 +6,40 @@ export class HowToPlayScreen {
     private stage: Konva.Stage;
     private onStartGame: () => void;
     private animationFrameId: number | null = null;
-    private currentRenderId: number = 0; // Tracks the current valid render pass
+    private currentRenderId: number = 0;
+    
+    // FIX 1: Add a flag to track if this screen is still valid
+    private isActive: boolean = true; 
 
     constructor(stage: Konva.Stage, layer: Konva.Layer, onStartGame: () => void) {
         this.stage = stage;
         this.layer = layer;
         this.onStartGame = onStartGame;
-        this.setupUI();
         
-        // Add the listener correctly
+        // Bind resize handler
+        this.handleResize = this.handleResize.bind(this);
+        
+        this.setupUI();
         window.addEventListener('resize', this.handleResize);
     }
 
-    // FIX 1: Defined as an arrow function property so 'this' is preserved 
-    // and we can remove it correctly in cleanup()
     private handleResize = (): void => {
-        // Cancel any pending frame to prevent stacking
+        if (!this.isActive) return; // Stop if dead
+
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
         }
 
-        // FIX 2: Use requestAnimationFrame instead of setTimeout.
-        // This updates INSTANTLY (60fps) so the background never disappears.
         this.animationFrameId = requestAnimationFrame(() => {
+            if (!this.isActive) return;
             this.layer.destroyChildren();
             this.setupUI();
         });
     };
 
     private setupUI(): void {
-        // Increment render ID. Old async text loads will see this changed and stop.
+        if (!this.isActive) return; // Stop if dead
+
         this.currentRenderId++;
         const myRenderId = this.currentRenderId;
 
@@ -66,7 +70,6 @@ export class HowToPlayScreen {
             shadowOpacity: 0.35
         });
 
-        // Gloss/Highlight
         const highlight = new Konva.Rect({
             x: modalX,
             y: modalY,
@@ -80,7 +83,14 @@ export class HowToPlayScreen {
             opacity: 0.6
         });
 
-        modalGroup.add(paper, highlight);
+        const crease = new Konva.Line({
+            points: [modalX + 16, modalY + modalH * 0.45, modalX + modalW - 16, modalY + modalH * 0.45],
+            stroke: 'rgba(0,0,0,0.08)',
+            strokeWidth: 2,
+            listening: false
+        });
+
+        modalGroup.add(paper, highlight, crease);
         this.layer.add(modalGroup);
 
         // Title
@@ -97,7 +107,7 @@ export class HowToPlayScreen {
         });
         this.layer.add(title);
 
-        // Load instructions (Async)
+        // Load instructions
         this.loadInstructions(stageWidth, stageHeight, modalY, modalH, myRenderId);
 
         // Start button
@@ -121,14 +131,15 @@ export class HowToPlayScreen {
     ): Promise<void> {
         try {
             const response = await fetch('/howtoplay.txt');
+            
+            // FIX 2: Check active status AFTER await
+            // If user clicked "Start" while fetching, STOP HERE.
+            if (!this.isActive || this.currentRenderId !== renderId) return;
+
             let text = await response.text();
 
-            // FIX 3: renderId Check
-            // If the user resized the window while we were fetching, this ID will not match.
-            // We stop immediately to prevent adding text to a destroyed/new layer.
-            if (this.currentRenderId !== renderId) {
-                return;
-            }
+            // FIX 3: Check active status AGAIN after reading text
+            if (!this.isActive || this.currentRenderId !== renderId) return;
 
             text = text
                 .split('\n')
@@ -173,9 +184,9 @@ export class HowToPlayScreen {
                     fontSize: fontSize + 2,
                     fontFamily: 'Press Start 2P',
                     fontStyle: 'bold',
-                    fill: '#FFAA00',
+                    fill: '#FFD700',
                     align: 'center',
-                    shadowColor: '#FFD700',
+                    shadowColor: '#000000',
                     shadowBlur: 2,
                     shadowOpacity: 0.5
                 });
@@ -214,13 +225,13 @@ export class HowToPlayScreen {
                 this.layer.add(instructions);
             }
 
-            // Draw the layer again to show the text
-            this.layer.draw();
+            // Only draw if we are still alive
+            if (this.isActive) {
+                this.layer.draw();
+            }
 
         } catch (error) {
-            if (this.currentRenderId === renderId) {
-                console.error('Could not load instructions:', error);
-            }
+            console.error('Could not load instructions:', error);
         }
     }
 
@@ -257,7 +268,11 @@ export class HowToPlayScreen {
         buttonGroup.add(rect);
         buttonGroup.add(text);
 
-        buttonGroup.on('click', this.onStartGame);
+        buttonGroup.on('click', () => {
+            this.cleanup(); // Clean up myself
+            this.onStartGame(); // Notify parent to switch screens
+        });
+
         buttonGroup.on('mouseenter', () => {
             this.stage.container().style.cursor = 'pointer';
             rect.fill('#45a049');
@@ -273,10 +288,16 @@ export class HowToPlayScreen {
     }
 
     public cleanup(): void {
-        // FIX 4: Correctly remove the specific listener function
+        // FIX 4: Set Active to false immediately
+        this.isActive = false;
+
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
         }
         window.removeEventListener('resize', this.handleResize);
+        
+        // Optional: Destroy specifically this screen's children 
+        // (usually the next screen clears the layer, but this is safer)
+        this.layer.destroyChildren(); 
     }
 }
