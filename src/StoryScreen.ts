@@ -1,17 +1,55 @@
 import Konva from "konva";
-import { HowToPlayScreen } from "./HowToPlayScreen";
 
 export class StoryScreen {
+  private stage: Konva.Stage;
+  private layer: Konva.Layer;
+  private onComplete: () => void;
+  
+  // Resizing & State variables
+  private resizeHandler: () => void;
+  private animationFrameId: number | null = null;
+  private typingInterval: number | null = null;
+  private currentRenderId: number = 0;
+
   constructor(stage: Konva.Stage, layer: Konva.Layer, onComplete: () => void) {
+    this.stage = stage;
+    this.layer = layer;
+    this.onComplete = onComplete;
+
+    // Bind resize handler
+    this.resizeHandler = this.handleResize.bind(this);
+
+    this.setupUI();
+
+    // Add listener
+    window.addEventListener('resize', this.resizeHandler);
+  }
+
+  private handleResize(): void {
+    if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+
+    this.animationFrameId = requestAnimationFrame(() => {
+        // Stop typing immediately on resize
+        if (this.typingInterval) clearInterval(this.typingInterval);
+        
+        this.layer.destroyChildren();
+        this.setupUI();
+    });
+  }
+
+  private setupUI(): void {
+    this.currentRenderId++;
+    const myRenderId = this.currentRenderId;
+
     const cursorDefault = "default";
     const cursorPointer = "pointer";
-
     const bgSrc = "/Storyline.png";
 
     // Responsive Constants
-    const stageWidth = stage.width();
-    const stageHeight = stage.height();
+    const stageWidth = this.stage.width();
+    const stageHeight = this.stage.height();
 
+    // --- YOUR ORIGINAL STAGING LOGIC ---
     // Box Dimensions
     const boxRatioWidth = 0.8;
     const boxRatioHeight = 0.35;
@@ -34,16 +72,16 @@ export class StoryScreen {
     const textY = boxY + boxHeight * 0.12;
     const textWidth = boxWidth - (textPadding * 2);
     const textFontSize = Math.min(stageWidth * 0.015, 18);
-    const textFontFamily = "Press Start 2P"; // ** Changed font to a loaded font **
+    const textFontFamily = "Press Start 2P"; 
     const textFontStyle = "bold";
     const username = localStorage.getItem("username");
     const fullText = `Today is a sad day for Owl. He lost his job. Owl is thinking of making cookies from his new home, the trailer park. ${username}, please help Owl get back on his feet by baking some cookies.`;
 
-    // Button ** ADDED CENTERING **
+    // Button Logic
     const buttonWidth = Math.min(stageWidth * 0.45, 250);
-    const buttonHeight = Math.min(stageHeight * 0.1, 150);
+    const buttonHeight = Math.min(stageHeight * 0.08, 150);
     const buttonX = (stageWidth - buttonWidth) / 2;
-    const buttonY = boxY + boxHeight * 0.65;
+    const buttonY = boxY + boxHeight * 0.65; // Keeping your original Y position
     const buttonFill = "#F77F00";
     const buttonText = "HELP OWL!";
     const buttonTextFontFamily = textFontFamily;
@@ -59,21 +97,24 @@ export class StoryScreen {
     const buttonPadding = 5;
 
     // Stage default cursor
-    stage.container().style.cursor = cursorDefault;
+    this.stage.container().style.cursor = cursorDefault;
 
     // ---------------------------
     // Load background image
     // ---------------------------
     const image = new Image();
     image.onload = () => {
+      // Safety check: stop if resized while loading
+      if (this.currentRenderId !== myRenderId) return;
+
       const bg = new Konva.Image({
         x: 0,
         y: 0,
-        width: stage.width(),
-        height: stage.height(),
+        width: stageWidth,
+        height: stageHeight,
         image: image,
       });
-      layer.add(bg);
+      this.layer.add(bg);
 
       // ---------------------------
       // Add box
@@ -88,7 +129,7 @@ export class StoryScreen {
         strokeWidth: boxStrokeWidth,
         cornerRadius: boxCornerRadius,
       });
-      layer.add(box);
+      this.layer.add(box);
 
       // ---------------------------
       // Add animated text
@@ -98,22 +139,35 @@ export class StoryScreen {
         y: textY,
         width: textWidth,
         height: boxHeight * 0.6,
-        align: 'center', // ** ADDED CENTERING **
-        lineHeight: 1.5, // ** ADDED LINE HEIGHT **
+        align: 'center', 
+        lineHeight: 1.5, 
         fontSize: textFontSize,
         fontFamily: textFontFamily,
         fontStyle: textFontStyle,
+        text: "" // Start empty
       });
-      layer.add(text);
+      this.layer.add(text);
+      this.layer.draw();
 
       let index = 0;
-      const interval = setInterval(() => {
+      
+      // Clear any existing interval
+      if (this.typingInterval) clearInterval(this.typingInterval);
+
+      this.typingInterval = window.setInterval(() => {
+        // Safety check inside interval
+        if (this.currentRenderId !== myRenderId) {
+            if (this.typingInterval) clearInterval(this.typingInterval);
+            return;
+        }
+
         text.text(fullText.slice(0, index));
-        layer.draw();
+        this.layer.batchDraw();
         index++;
 
         if (index > fullText.length) {
-          clearInterval(interval);
+          if (this.typingInterval) clearInterval(this.typingInterval);
+          this.typingInterval = null;
 
           // ---------------------------
           // Add button
@@ -151,44 +205,46 @@ export class StoryScreen {
             })
           );
 
-          layer.add(button);
-          layer.draw();
-
-          button.on("click", () => {
-            layer.destroyChildren();
-            onComplete();
-          });
+          this.layer.add(button);
+          this.layer.batchDraw();
 
           // Fix cursor with inner text not blocking events
           (button.getChildren()[1] as Konva.Text).listening(false);
 
           // Mouse hover
           button.on("mouseenter", () => {
-            stage.container().style.cursor = cursorPointer;
+            this.stage.container().style.cursor = cursorPointer;
             const tag = button.getChildren()[0] as Konva.Tag;
             tag.shadowBlur(buttonShadowBlurHover);
             tag.shadowOffset(buttonShadowOffsetHover);
             tag.fill("#fcbf49");
-            layer.draw();
+            this.layer.batchDraw();
           });
 
           button.on("mouseleave", () => {
-            stage.container().style.cursor = cursorDefault;
+            this.stage.container().style.cursor = cursorDefault;
             const tag = button.getChildren()[0] as Konva.Tag;
             tag.shadowBlur(buttonShadowBlurDefault);
             tag.shadowOffset(buttonShadowOffsetDefault);
             tag.fill("#F77F00");
-            layer.draw();
+            this.layer.batchDraw();
           });
 
           button.on("click", () => {
-            layer.destroyChildren();
-            onComplete();
+            this.cleanup(); // Clean listeners
+            this.layer.destroyChildren();
+            this.onComplete();
           });
         }
       }, 50);
     };
 
     image.src = bgSrc;
+  }
+
+  public cleanup() {
+    if (this.typingInterval) clearInterval(this.typingInterval);
+    if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+    window.removeEventListener('resize', this.resizeHandler);
   }
 }
