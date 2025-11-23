@@ -133,17 +133,30 @@ describe("UI component coverage", () => {
     vi.stubGlobal(
       "Image",
       class {
-        onload: (() => void) | null = null;
+        _src = "";
+        _onload: (() => void) | null = null;
         onerror: (() => void) | null = null;
         width = 100;
         height = 50;
         set src(val: string) {
-          // allow tests to decide whether to trigger error
+          this._src = val;
           if (val.includes("force-error")) {
             this.onerror?.();
           } else {
-            this.onload?.();
+            this._onload?.();
           }
+        }
+        get src() {
+          return this._src;
+        }
+        set onload(fn: (() => void) | null) {
+          this._onload = fn;
+          if (fn && this._src && !this._src.includes("force-error")) {
+            fn();
+          }
+        }
+        get onload() {
+          return this._onload;
         }
       }
     );
@@ -283,16 +296,30 @@ describe("UI component coverage", () => {
     vi.stubGlobal(
       "Image",
       class {
-        onload: (() => void) | null = null;
+        _src = "";
+        _onload: (() => void) | null = null;
         onerror: (() => void) | null = null;
         width = 100;
         height = 50;
         set src(val: string) {
+          this._src = val;
           if (val.includes("price-tag") && val.includes("error")) {
             this.onerror?.();
           } else {
-            this.onload?.();
+            this._onload?.();
           }
+        }
+        get src() {
+          return this._src;
+        }
+        set onload(fn: (() => void) | null) {
+          this._onload = fn;
+          if (fn && this._src && !(this._src.includes("price-tag") && this._src.includes("error"))) {
+            fn();
+          }
+        }
+        get onload() {
+          return this._onload;
         }
       }
     );
@@ -379,16 +406,30 @@ describe("UI component coverage", () => {
     vi.stubGlobal(
       "Image",
       class {
-        onload: (() => void) | null = null;
+        _src = "";
+        _onload: (() => void) | null = null;
         onerror: (() => void) | null = null;
         width = 100;
         height = 50;
         set src(val: string) {
+          this._src = val;
           if (val.includes("price-tag")) {
             this.onerror?.();
           } else {
-            this.onload?.();
+            this._onload?.();
           }
+        }
+        get src() {
+          return this._src;
+        }
+        set onload(fn: (() => void) | null) {
+          this._onload = fn;
+          if (fn && this._src && !this._src.includes("price-tag")) {
+            fn();
+          }
+        }
+        get onload() {
+          return this._onload;
         }
       }
     );

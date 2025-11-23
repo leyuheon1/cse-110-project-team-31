@@ -88,9 +88,21 @@ describe("SavingsTracker coverage", () => {
     vi.stubGlobal(
       "Image",
       class {
-        onload: (() => void) | null = null;
-        set src(_: string) {
-          this.onload?.();
+        _src = "";
+        _onload: (() => void) | null = null;
+        set src(val: string) {
+          this._src = val;
+          this._onload?.();
+        }
+        get src() {
+          return this._src;
+        }
+        set onload(fn: (() => void) | null) {
+          this._onload = fn;
+          if (fn && this._src) fn();
+        }
+        get onload() {
+          return this._onload;
         }
       }
     );

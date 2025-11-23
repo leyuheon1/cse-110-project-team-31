@@ -110,18 +110,34 @@ describe("ShoppingScreen full coverage", () => {
     vi.stubGlobal(
       "Image",
       class {
-        onload: (() => void) | null = null;
+        _src = "";
+        _onload: (() => void) | null = null;
         onerror: (() => void) | null = null;
         width = 100;
         height = 50;
         set src(val: string) {
-          if (val.includes("price-tag") && options.priceTagError) {
-            this.onerror?.();
-          } else if (val.includes("start-receipt") && options.receiptError) {
+          this._src = val;
+          const failPrice = val.includes("price-tag") && options.priceTagError;
+          const failReceipt = val.includes("start-receipt") && options.receiptError;
+          if (failPrice || failReceipt) {
             this.onerror?.();
           } else {
-            this.onload?.();
+            this._onload?.();
           }
+        }
+        get src() {
+          return this._src;
+        }
+        set onload(fn: (() => void) | null) {
+          this._onload = fn;
+          const failPrice = this._src.includes("price-tag") && options.priceTagError;
+          const failReceipt = this._src.includes("start-receipt") && options.receiptError;
+          if (fn && this._src && !failPrice && !failReceipt) {
+            fn();
+          }
+        }
+        get onload() {
+          return this._onload;
         }
       }
     );

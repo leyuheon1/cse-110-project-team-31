@@ -110,18 +110,32 @@ describe("ShoppingScreen targeted coverage", () => {
     vi.stubGlobal(
       "Image",
       class {
-        onload: (() => void) | null = null;
+        _src = "";
+        _onload: (() => void) | null = null;
         onerror: (() => void) | null = null;
         width = 100;
         height = 50;
         set src(val: string) {
-          if (val.includes("price-tag") && options.priceTagError) {
-            this.onerror?.();
-          } else if (val.includes("start-receipt") && options.receiptError) {
+          this._src = val;
+          const shouldFailPrice = val.includes("price-tag") && options.priceTagError;
+          const shouldFailReceipt = val.includes("start-receipt") && options.receiptError;
+          if (shouldFailPrice || shouldFailReceipt) {
             this.onerror?.();
           } else {
-            this.onload?.();
+            this._onload?.();
           }
+        }
+        get src() {
+          return this._src;
+        }
+        set onload(fn: (() => void) | null) {
+          this._onload = fn;
+          if (fn && this._src && !this._src.includes("price-tag") && !this._src.includes("start-receipt")) {
+            fn();
+          }
+        }
+        get onload() {
+          return this._onload;
         }
       }
     );
@@ -162,6 +176,9 @@ describe("ShoppingScreen targeted coverage", () => {
       onPurchaseComplete,
       onViewRecipe
     );
+    // Directly re-run setup/draw to exercise internal callbacks
+    screen.setupUI?.();
+    screen.drawDynamicUI?.();
 
     // Directly exercise helper factories for uncovered lines
     screen.createBalanceGroup(900, 700);
@@ -172,10 +189,19 @@ describe("ShoppingScreen targeted coverage", () => {
     screen.createPurchaseButton(900, 0);
     screen.createIngredientRow(900, 400, { name: "Butter", price: 0.5, inputValue: "0", unit: "tbsp" }, 200);
 
-    // Focus input and type to toggle stroke changes
+    // Focus input via click handler and type to toggle stroke changes
     const firstRect = layer.getChildren().find((c: any) => c.stroke && c.stroke() === "#3498db");
     const firstText = layer.getChildren().find((c: any) => c.text?.() === "0");
-    screen.focusInput("Butter", firstRect, firstText);
+    firstRect?.fire("click"); // invokes focusInput through bound handler
+    firstRect?.fire("mouseenter");
+    firstRect?.fire("mouseleave");
+    firstText?.fire?.("click");
+    screen.handleKeyPress(new KeyboardEvent("keydown", { key: "5" }));
+    screen.handleKeyPress(new KeyboardEvent("keydown", { key: "Backspace" }));
+    screen.updateInputDisplay("Butter");
+    screen.updateTotalCost();
+    // Second focus to trigger prior focus reset branch
+    screen.focusInput("Sugar", new Konva.Rect(), new Konva.Text());
     screen.handleKeyPress(new KeyboardEvent("keydown", { key: "5" }));
     screen.handleKeyPress(new KeyboardEvent("keydown", { key: "Backspace" }));
 
@@ -184,6 +210,8 @@ describe("ShoppingScreen targeted coverage", () => {
     const purchaseBtnGroup = layer
       .getChildren()
       .find((c: any) => c.getChildren?.().some((n: any) => n.text?.() === "PURCHASE"));
+    purchaseBtnGroup?.fire("mouseenter");
+    purchaseBtnGroup?.fire("mouseleave");
     purchaseBtnGroup?.fire("click");
     expect(onPurchaseComplete).toHaveBeenCalled();
     // insufficient funds branch
