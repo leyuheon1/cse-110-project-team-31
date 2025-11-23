@@ -344,7 +344,7 @@ describe('HowToPlayScreen', () => {
       exitRect.fire('click');
 
       expect(cleanupSpy).toHaveBeenCalledTimes(1);
-      expect(window.location.href).toBe('/login.hmtl'); // Note: typo in original code
+      expect(window.location.href).toBe('/login.html');
     });
   });
 
