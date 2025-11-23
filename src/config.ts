@@ -8,7 +8,7 @@ export class ConfigManager {
         // Default values
         this.config = {
             startingFunds: 500,
-            winThreshold: 2000,
+            winThreshold: 1000, //change from 2000 to 1000
             bankruptcyThreshold: 0,
             flourPriceMin: 5,
             flourPriceMax: 15,

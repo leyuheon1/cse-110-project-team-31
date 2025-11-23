@@ -1,6 +1,7 @@
 import Konva from 'konva';
 import { ExitButton } from './ui/ExitButton';
 import { InfoButton } from './ui/InfoButton';
+import { SavingsTracker } from './ui/SavingsTracker';
 
 export class DaySummaryScreen {
     private layer: Konva.Layer;
@@ -11,6 +12,7 @@ export class DaySummaryScreen {
     private dayExpenses: number;
     private currentFunds: number;
     private dayTips: number; // <-- ADDED THIS
+    private savingsTracker!: SavingsTracker;
 
     // --- MODIFIED CONSTRUCTOR ---
     constructor(
@@ -270,6 +272,10 @@ export class DaySummaryScreen {
         //Info Button
         const infoButton = new InfoButton(this.stage, this.layer);
         
+        // Add savings tracker
+        this.savingsTracker = new SavingsTracker(this.layer, this.stage);
+        this.savingsTracker.update(this.currentFunds);
+
         this.layer.draw();
     }
 
