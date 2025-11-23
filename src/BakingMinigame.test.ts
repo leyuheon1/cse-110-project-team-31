@@ -156,6 +156,7 @@ vi.mock("konva", () => {
   class FakeGroup extends FakeNode {
     children: unknown[] = [];
     private visibleState: boolean;
+    private handlers = new Map<string, Handler>();
 
     constructor(config?: Record<string, unknown>) {
       super(config);
@@ -184,6 +185,15 @@ vi.mock("konva", () => {
 
     destroy() {
       this.config.destroyed = true;
+    }
+
+    on(event: string, handler: Handler) {
+      this.handlers.set(event, handler);
+    }
+
+    trigger(event: string, evt?: { cancelBubble?: boolean }) {
+      const handler = this.handlers.get(event);
+      handler?.(evt);
     }
   }
 
@@ -225,6 +235,10 @@ vi.mock("konva", () => {
       konvaState.texts.push({ config: this.config });
     }
 
+    width() {
+      return (this.config.width as number) ?? 10;
+    }
+
     text(value: string) {
       this.config.text = value;
     }
@@ -243,6 +257,14 @@ vi.mock("konva", () => {
 
     height() {
       return (this.config.height as number) ?? 10;
+    }
+
+    offsetX(value: number) {
+      this.config.offsetX = value;
+    }
+
+    offsetY(value: number) {
+      this.config.offsetY = value;
     }
   }
 
