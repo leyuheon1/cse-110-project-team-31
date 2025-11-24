@@ -27,13 +27,13 @@ export class ShoppingScreen {
   private focusedInputBox: Konva.Rect | null = null;
   private currentPriceText: Konva.Text | null = null;
   
-  // NEW: To hold the single loaded price tag image object
   private priceTagImageObj: HTMLImageElement | null = null; 
 
+  // --- UPDATED ORDER: Flour, Butter, Sugar, Chocolate, Baking Soda ---
   private ingredients: IngredientItem[] = [
     { name: "Flour", price: 0.5, inputValue: "0", unit: "cup" },
-    { name: "Sugar", price: 0.75, inputValue: "0", unit: "cup" },
-    { name: "Butter", price: 0.25, inputValue: "0", unit: "tbsp" },
+    { name: "Butter", price: 0.25, inputValue: "0", unit: "tbsp" }, // Moved up (Index 1)
+    { name: "Sugar", price: 0.75, inputValue: "0", unit: "cup" },   // Moved down (Index 2)
     { name: "Chocolate", price: 3, inputValue: "0", unit: "cup" },
     { name: "Baking Soda", price: 0.5, inputValue: "0", unit: "tsp" },
   ];
@@ -54,7 +54,7 @@ export class ShoppingScreen {
       totalCost: number
     ) => void,
     onViewRecipe: () => void,
-    savedInputValues: Map<string, string> | undefined = undefined //New Parameter for saving input values
+    savedInputValues: Map<string, string> | undefined = undefined 
   ) {
     this.stage = stage;
     this.layer = layer;
@@ -66,7 +66,6 @@ export class ShoppingScreen {
     this.onViewRecipe = onViewRecipe;
     this.keyboardHandler = this.handleKeyPress.bind(this);
 
-    //restore saved values if provided
     if(savedInputValues){
       this.ingredients.forEach(ingredient => {
         const savedValue = savedInputValues.get(ingredient.name);
@@ -79,14 +78,13 @@ export class ShoppingScreen {
     this.setupKeyboardInput();
   }
 
-  // --- UI SETUP & IMAGE LOADING ---
+  // ... (Rest of the class methods remain exactly the same) ...
 
   private setupUI(): void {
     this.layer.destroyChildren();
     const stageWidth = this.stage.width();
     const stageHeight = this.stage.height();
 
-    // 1. Load Background Image
     const backgroundImage = new Image();
     backgroundImage.src = "./Shopping.png";
     backgroundImage.onload = () => {
@@ -101,9 +99,7 @@ export class ShoppingScreen {
       background.moveToBottom();
       this.layer.draw();
 
-      // 2. Load Price Tag Image after background loads
       this.loadPriceTagImage(() => {
-        // 3. Draw all dynamic UI elements once images are ready
         this.drawDynamicUI();
         this.layer.draw();
       });
@@ -136,55 +132,35 @@ export class ShoppingScreen {
     this.layer.add(nameText);
   }
 
-  // --- DYNAMIC UI RENDERING ---
-
   private drawDynamicUI(): void {
     const stageWidth = this.stage.width();
     const stageHeight = this.stage.height();
 
-    // --- Current Funds Group (Box + Text) ---
     this.createBalanceGroup(stageWidth, stageHeight);
 
-    // --- Ingredients Setup (Responsive Grid and Grouping) ---
     const itemXPercentages = [0.22, 0.363, 0.5, 0.637, 0.77]; 
     const inputY = stageHeight * 0.68;
     const nameY = stageHeight * 0.65;
 
     this.ingredients.forEach((ingredient, index) => {
         const center_X = stageWidth * itemXPercentages[index];
-
-        // Ingredient Name
         this.createIngredientNameText(stageWidth, nameY, ingredient.name, center_X);
-        
-        // Group for Price Tag and Price Text
         this.createPriceTagGroup(stageWidth, stageHeight, ingredient, center_X); 
-        
-        // Input box row (responsive)
-        this.createIngredientRow(
-            stageWidth,
-            inputY,
-            ingredient,
-            center_X
-        );
+        this.createIngredientRow(stageWidth, inputY, ingredient, center_X);
     });
     
-    // Initialize Total Cost display
     this.updateTotalCost();
 
-    // --- Buttons (Aligned in Footer) ---
     this.createViewRecipeButton(stageWidth, stageHeight); 
     this.createViewOrdersButton(stageWidth, stageHeight);
     this.createPurchaseButton(stageWidth, 0); 
 
-    // --- Exit & Info ---
     new ExitButton(this.stage, this.layer, () => {
       this.cleanup();
       window.location.href = "/login.html";
     });
     new InfoButton(this.stage, this.layer);
   }
-
-  // --- GROUPING & CREATION HELPERS ---
 
   private createBalanceGroup(stageWidth: number, stageHeight: number): void {
     const balanceBoxWidth = stageWidth * 0.25;
@@ -207,7 +183,6 @@ export class ShoppingScreen {
 
     const balanceFontSize = Math.min(stageWidth * 0.01, 12);
     
-    // 1. Current Funds (Top line)
     this.currentPriceText = new Konva.Text({
         x: balanceBoxWidth * 0.05,
         width: balanceBoxWidth * 0.9,
@@ -221,7 +196,6 @@ export class ShoppingScreen {
     });
     balanceGroup.add(this.currentPriceText);
 
-    // 2. Total Cost (Bottom line)
     this.totalCostText = new Konva.Text({
         x: balanceBoxWidth * 0.05,
         y: balanceBoxHeight / 2,
@@ -285,8 +259,6 @@ export class ShoppingScreen {
     this.layer.add(priceTagGroup);
   }
 
-  // --- BUTTONS AND INPUTS ---
-
   private createViewRecipeButton(
     stageWidth: number,
     stageHeight: number
@@ -315,7 +287,7 @@ export class ShoppingScreen {
         fontSize: Math.min(stageWidth * 0.01, 12),
         fill: "white",
         align: "center",
-        verticalAlign: "middle",
+        verticalAlign: 'middle',
         fontFamily: "Press Start 2P",
         fontStyle: "bold",
     });
@@ -325,7 +297,6 @@ export class ShoppingScreen {
     text.listening(false);
 
     rect.on("click", () => {
-      //save current input state before navigating away
       const currentValues = this.getIngredientValues();
       this.cleanup();
       this.onViewRecipe();
@@ -374,7 +345,7 @@ export class ShoppingScreen {
         fontSize: Math.min(stageWidth * 0.01, 12),
         fill: "white",
         align: "center",
-        verticalAlign: "middle",
+        verticalAlign: 'middle',
         fontFamily: "Press Start 2P",
         fontStyle: "bold",
     });
@@ -406,10 +377,8 @@ export class ShoppingScreen {
     const stageWidth = this.stage.width();
     const stageHeight = this.stage.height();
 
-    // Create modal layer
     const modalLayer = new Konva.Layer();
     
-    // Darkened/blurred background overlay
     const overlay = new Konva.Rect({
         x: 0,
         y: 0,
@@ -419,7 +388,6 @@ export class ShoppingScreen {
     });
     modalLayer.add(overlay);
 
-    // Load and create receipt
     const imageObj = new Image();
     imageObj.onload = () => {
         const aspectRatio = imageObj.width / imageObj.height;
@@ -460,7 +428,6 @@ export class ShoppingScreen {
         
         currentY += stageHeight * 0.04;
 
-        // Use the actual customer orders from OrderScreen
         const fontSize = Math.min(stageWidth * 0.013, 15);
 
         this.customerOrders.forEach(order => {
@@ -505,7 +472,6 @@ export class ShoppingScreen {
 
         modalLayer.add(receiptGroup);
 
-        // Close button (X in top-left corner of receipt)
         const closeButtonSize = receiptWidth * 0.08;
         const closeButton = new Konva.Circle({
             x: (stageWidth - receiptWidth) / 2 + closeButtonSize,
@@ -749,7 +715,6 @@ export class ShoppingScreen {
     window.removeEventListener("keydown", this.keyboardHandler);
   }
 
-  //helper function to get current input values for all ingredients
   public getIngredientValues(): Map<string, string>{
     const value = new Map<string, string>();
     this.ingredients.forEach(ingredient => {
