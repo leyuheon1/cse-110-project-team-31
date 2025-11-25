@@ -84,7 +84,7 @@ export class DaySummaryScreen {
 
             // --- FONT AND SPACING CONSTANTS ---
             const FONT_FAMILY = 'Doto';
-            const BASE_FONT_SIZE = Math.min(stageWidth * 0.018, 18); // Use a single size for list items
+            const BASE_FONT_SIZE = Math.min(stageWidth * 0.014, 16); // Use a single size for list items
             const LINE_ADVANCE = receiptHeight * 0.035; // 3.5% of receipt height for line spacing
 
             // Calculate center Y position for the receipt group
