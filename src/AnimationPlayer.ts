@@ -12,7 +12,6 @@ function loadImages(urls: string[]): Promise<HTMLImageElement[]> {
     });
     return Promise.all(promises);
 }
-// --- END HELPER FUNCTION ---
 
 export class AnimationPlayer {
     private layer: Konva.Layer;
@@ -43,7 +42,8 @@ export class AnimationPlayer {
     ) {
         this.layer = layer;
         this.imagePaths = imagePaths;
-        this.frameRate = frameRate > 0 ? frameRate : 1; // Ensure positive frame rate
+        // Ensure strictly positive frame rate to avoid division by zero
+        this.frameRate = frameRate > 0 ? frameRate : 1; 
         this.x = x;
         this.y = y;
         this.width = width;
@@ -63,7 +63,7 @@ export class AnimationPlayer {
             console.log(`Animation loaded ${this.imagePaths.length} frames.`);
         } catch (error) {
             console.error("Failed to load animation images:", error);
-            throw error; // Re-throw error to be handled by caller
+            throw error;
         }
     }
 
@@ -73,7 +73,7 @@ export class AnimationPlayer {
             return;
         }
 
-        // Create or update Konva Image
+        // Initialize or reset the Konva Image
         if (!this.konvaImage) {
             this.konvaImage = new Konva.Image({
                 x: this.x,
@@ -106,14 +106,20 @@ export class AnimationPlayer {
                 } else {
                     this.stop(); // Stop at the end
                     if (this.onComplete) {
-                        this.onComplete(); // Trigger callback
+                        this.onComplete();
                     }
                     return;
                 }
             }
 
-            // Update image source and redraw
-            this.konvaImage.image(this.frames[this.currentFrameIndex]);
+            // --- FIX FOR TEST: "should handle empty/null frames gracefully" ---
+            // Only update the image if the frame exists.
+            // Even if the frame is null/undefined, we still batchDraw() to keep loop timing.
+            const frame = this.frames[this.currentFrameIndex];
+            if (frame) {
+                this.konvaImage.image(frame);
+            }
+            
             this.layer.batchDraw();
 
         }, 1000 / this.frameRate);
@@ -133,11 +139,10 @@ export class AnimationPlayer {
             this.konvaImage.destroy();
             this.konvaImage = null;
         }
-        this.frames = []; // Clear loaded images
+        this.frames = [];
         this.isLoaded = false;
     }
 
-     // Helper to check if animation is currently running
     getIsPlaying(): boolean {
         return this.isPlaying;
     }

@@ -1,5 +1,5 @@
 import Konva from "konva";
-import { HowToPlayScreen } from "./HowToPlayScreen";
+import { ConfigManager } from "./config"; // Import ConfigManager
 
 export class StoryScreen {
   constructor(stage: Konva.Stage, layer: Konva.Layer, onComplete: () => void) {
@@ -34,12 +34,17 @@ export class StoryScreen {
     const textY = boxY + boxHeight * 0.12;
     const textWidth = boxWidth - (textPadding * 2);
     const textFontSize = Math.min(stageWidth * 0.015, 18);
-    const textFontFamily = "Press Start 2P"; // ** Changed font to a loaded font **
+    const textFontFamily = "Press Start 2P"; 
     const textFontStyle = "bold";
     const username = localStorage.getItem("username");
-    const fullText = `Today is a sad day for Owl. He lost his job, and now lives in a small trailer park. Owl dreams of buying a cozy little house, but he needs $1000 to make it happen. ${username}, please help Owl get back on his feet by baking some cookies!`;
 
-    // Button ** ADDED CENTERING **
+    // --- DYNAMIC WIN THRESHOLD ---
+    const config = ConfigManager.getInstance().getConfig();
+    const winAmount = config.winThreshold;
+
+    const fullText = `Today is a sad day for Owl. He lost his job, and now lives in a small trailer park. Owl dreams of buying a cozy little house, but he needs $${winAmount} to make it happen. ${username}, please help Owl get back on his feet by baking some cookies!`;
+
+    // Button 
     const buttonWidth = Math.min(stageWidth * 0.45, 250);
     const buttonHeight = Math.min(stageHeight * 0.1, 150);
     const buttonX = (stageWidth - buttonWidth) / 2;
@@ -98,8 +103,8 @@ export class StoryScreen {
         y: textY,
         width: textWidth,
         height: boxHeight * 0.6,
-        align: 'center', // ** ADDED CENTERING **
-        lineHeight: 1.5, // ** ADDED LINE HEIGHT **
+        align: 'center', 
+        lineHeight: 1.5, 
         fontSize: textFontSize,
         fontFamily: textFontFamily,
         fontStyle: textFontStyle,
