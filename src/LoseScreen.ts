@@ -3,7 +3,7 @@ import Konva from "konva";
 interface LoseScreenOptions {
   cashBalance: number;
   totalDaysPlayed: number;
-  onReturnHome: () => void; // Single exit action
+  onReturnHome: () => void; 
 }
 
 export class LoseScreen {
@@ -20,7 +20,6 @@ export class LoseScreen {
 
   private setupUI(): void {
     // 1) CLEAR THE LAYER
-    // Remove previous game objects so they don't show through transparency
     this.layer.destroyChildren();
 
     const stageWidth = this.stage.width();
@@ -45,7 +44,6 @@ export class LoseScreen {
     imageObj.src = "/lose-background.png";
 
     // 3) Stats Text
-    // Placed above the owl (approx 40% down)
     const infoText = new Konva.Text({
       x: 0,
       y: stageHeight * 0.4,
@@ -55,7 +53,7 @@ export class LoseScreen {
         `Final Balance: $${this.opts.cashBalance.toFixed(2)}`,
       fontSize: Math.min(stageWidth * 0.05, 24),
       fontStyle: "bold",
-      fill: "#da5552", // Dark brown matches the aesthetic better than pure black
+      fill: "#da5552", 
       align: "center",
       lineHeight: 1.5,
       fontFamily: '"Press Start 2P", cursive',
@@ -63,7 +61,6 @@ export class LoseScreen {
     this.layer.add(infoText);
 
     // 4) Return to Login Button
-    // Placed below the owl (approx 72% down)
     const buttonWidth = Math.min(stageWidth * 0.4, 250);
     const buttonHeight = Math.min(stageHeight * 0.08, 80);
 
@@ -75,7 +72,7 @@ export class LoseScreen {
     const returnRect = new Konva.Rect({
       width: buttonWidth,
       height: buttonHeight,
-      fill: "#FFAA00", // Orange match
+      fill: "#FFAA00", 
       cornerRadius: 15,
       shadowColor: "black",
       shadowBlur: 15,
@@ -86,48 +83,35 @@ export class LoseScreen {
     const returnText = new Konva.Text({
       width: buttonWidth,
       height: buttonHeight,
-      text: "RETURN\nTO LOGIN", // Stacked text
+      text: "RETURN\nTO LOGIN", 
       fontSize: Math.min(stageWidth * 0.03, 20),
       fontFamily: '"Press Start 2P", cursive',
       fill: "white",
       align: "center",
       verticalAlign: "middle",
       lineHeight: 1.4,
+      listening: false // Optimization: let clicks pass through text to the rect/group
     });
 
     returnGroup.add(returnRect);
     returnGroup.add(returnText);
 
     // Interaction Logic
-    returnGroup.on("click", () => {
+    returnGroup.on("click tap", () => {
       this.opts.onReturnHome();
     });
 
+    // FIXED: Removed scaling logic, kept color change
     returnGroup.on("mouseenter", () => {
       this.stage.container().style.cursor = "pointer";
       returnRect.fill("#E69900"); // Darker orange
-      returnRect.scale({ x: 1.05, y: 1.05 });
-
-      // Recenter logic
-      const offsetX = (buttonWidth * 0.05) / 2;
-      const offsetY = (buttonHeight * 0.05) / 2;
-      returnRect.x(-offsetX);
-      returnRect.y(-offsetY);
-      returnText.x(-offsetX);
-      returnText.y(-offsetY);
-
       this.layer.draw();
     });
 
+    // FIXED: Removed scaling reset logic
     returnGroup.on("mouseleave", () => {
       this.stage.container().style.cursor = "default";
-      returnRect.fill("#FFAA00");
-      returnRect.scale({ x: 1, y: 1 });
-      returnRect.x(0);
-      returnRect.y(0);
-      returnText.x(0);
-      returnText.y(0);
-      
+      returnRect.fill("#FFAA00"); // Original orange
       this.layer.draw();
     });
 
