@@ -109,13 +109,42 @@ vi.mock("konva", () => {
 
   class FakeRect extends FakeNode {
     fillHistory: string[] = [];
+    xValue = (this.config.x as number) ?? 0;
+    widthValue = (this.config.width as number) ?? 0;
 
     fill(color: string) {
       this.fillHistory.push(color);
       this.config.fill = color;
     }
+
+    x() {
+      return this.xValue;
+    }
+
+    width() {
+      return this.widthValue;
+    }
   }
-  class FakeImage extends FakeNode {}
+  class FakeImage extends FakeNode {
+    private widthValue = (this.config.width as number) ?? 0;
+    private heightValue = (this.config.height as number) ?? 0;
+    private xValue = (this.config.x as number) ?? 0;
+
+    width() {
+      return this.widthValue;
+    }
+
+    height() {
+      return this.heightValue;
+    }
+
+    x(value?: number) {
+      if (typeof value === "number") {
+        this.xValue = value;
+      }
+      return this.xValue;
+    }
+  }
 
   class FakeText extends FakeNode {
     constructor(config?: Record<string, unknown>) {
@@ -148,7 +177,10 @@ describe("DaySummaryScreen", () => {
     konvaState.texts.length = 0;
     exitButtonState.destroy.mockClear();
     exitButtonState.lastCallback = null;
-    vi.stubGlobal("window", { location: { href: "about:blank" } });
+    vi.stubGlobal("window", {
+      location: { href: "about:blank" },
+      Image: (globalThis as any).Image,
+    });
   });
 
   afterEach(() => {

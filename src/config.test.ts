@@ -28,15 +28,15 @@ describe('ConfigManager', () => {
       const configManager = ConfigManager.getInstance();
       const config = configManager.getConfig();
       
-      expect(config.startingFunds).toBe(250);
+      expect(config.startingFunds).toBe(500);
     });
 
     it('should have all default values set correctly', () => {
       const configManager = ConfigManager.getInstance();
       const config = configManager.getConfig();
       
-      expect(config.startingFunds).toBe(250);
-      expect(config.winThreshold).toBe(2000);
+      expect(config.startingFunds).toBe(500);
+      expect(config.winThreshold).toBe(1000);
       expect(config.bankruptcyThreshold).toBe(0);
       expect(config.flourPriceMin).toBe(5);
       expect(config.flourPriceMax).toBe(15);
@@ -61,7 +61,7 @@ describe('ConfigManager', () => {
       
       // Modifying one should not affect the other
       config1.startingFunds = 999;
-      expect(config2.startingFunds).toBe(250);
+      expect(config2.startingFunds).toBe(500);
     });
   });
 
@@ -122,7 +122,7 @@ BAKING_TIME=120
       expect(config.startingFunds).toBe(1000);
       expect(config.bakingTime).toBe(120);
       // Other values should remain at defaults
-      expect(config.winThreshold).toBe(2000);
+      expect(config.winThreshold).toBe(1000);
       expect(config.cleaningTime).toBe(45);
     });
 
@@ -201,8 +201,8 @@ FLOUR_PRICE_MAX=18.75
       const config = configManager.getConfig();
       
       // Should still have default values
-      expect(config.startingFunds).toBe(250);
-      expect(config.winThreshold).toBe(2000);
+      expect(config.startingFunds).toBe(500);
+      expect(config.winThreshold).toBe(1000);
       
       // Should have logged a warning
       expect(consoleWarnSpy).toHaveBeenCalledWith(
