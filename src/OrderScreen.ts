@@ -117,15 +117,18 @@ export class OrderScreen {
             // --- Generate customer orders ---
             this.totalDemand = 0;
             this.customerOrders = [];
-            const rawNumCustomers = Math.floor((Math.random() * 6 + 5) * this.reputation);
+            //updated so that customer count always at least 1 and ranges between 1 and MAX_CUSTOMER_LINES
+            const rawNumCustomers = 1 + Math.floor(this.reputation * (MAX_CUSTOMER_LINES - 1));
             const numCustomers = Math.min(MAX_CUSTOMER_LINES, Math.max(1, rawNumCustomers));
 
             const fontSize = Math.min(stageWidth * 0.013, 15);
             const LEFT_PADDING = 10;
-            const RIGHT_PADDING = 10;
+            //RIGHT_PADDING unused
 
             for (let i = 1; i <= numCustomers; i++) {
-                const cookieCount = Math.max(1, Math.floor((Math.random() * 31 + 6) * this.reputation));
+                // updated calculation for cookieCount for each customer, decreased base cookie number based of reputation
+                // scale cookie demand based from reputation + add some variation between -2 and +1 cookies
+                const cookieCount = Math.max(1, Math.floor((this.reputation * 4) + (Math.random() * 3 - 2)));
                 this.totalDemand += cookieCount;
 
                 this.customerOrders.push({ customerNum: i, cookieCount });
