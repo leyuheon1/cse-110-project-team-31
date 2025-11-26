@@ -1,6 +1,7 @@
 import Konva from 'konva';
 import { ExitButton } from './ui/ExitButton';
 import { InfoButton } from './ui/InfoButton';
+import { SavingsTracker } from './ui/SavingsTracker';
 
 export class DaySummaryScreen {
     private layer: Konva.Layer;
@@ -10,9 +11,15 @@ export class DaySummaryScreen {
     private daySales: number;
     private dayExpenses: number;
     private currentFunds: number;
+    private dayTips: number;
+    
+    // 1. Add active flag to prevent ghost resizes
+    private isActive: boolean = true;
+    private resizeHandler: (() => void) | null = null;
+  
     private dayTips: number; // <-- ADDED THIS
+    private savingsTracker!: SavingsTracker;
 
-    // --- MODIFIED CONSTRUCTOR ---
     constructor(
         stage: Konva.Stage,
         layer: Konva.Layer,
@@ -20,7 +27,7 @@ export class DaySummaryScreen {
         daySales: number,
         dayExpenses: number,
         currentFunds: number,
-        dayTips: number, // <-- ADDED THIS
+        dayTips: number,
         onContinue: () => void
     ) {
         this.stage = stage;
@@ -29,33 +36,63 @@ export class DaySummaryScreen {
         this.daySales = daySales;
         this.dayExpenses = dayExpenses;
         this.currentFunds = currentFunds;
-        this.dayTips = dayTips; // <-- SET THIS
+        this.dayTips = dayTips;
         this.onContinue = onContinue;
+        
+        // Ensure we mark it active on creation
+        this.isActive = true;
 
         this.setupUI();
+        this.setupResizeHandler();
+    }
+
+    private setupResizeHandler(): void {
+        this.resizeHandler = () => {
+            // 2. Guard Clause: If this screen isn't active, STOP.
+            if (!this.isActive) return;
+
+            const container = this.stage.container();
+            const containerWidth = container.offsetWidth;
+            const containerHeight = container.offsetHeight;
+
+            this.stage.width(containerWidth);
+            this.stage.height(containerHeight);
+
+            this.layer.destroyChildren();
+            this.setupUI();
+        };
+
+        window.addEventListener('resize', this.resizeHandler);
     }
 
     private setupUI(): void {
+        // Double check active state before drawing
+        if (!this.isActive) return;
+
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
 
         this.loadOwlImage(stageWidth, stageHeight, () => {
-            // Once owl loads, add receipt + button
+            if (!this.isActive) return; // Guard in case async load finishes after cleanup
             this.createReceiptGroup(stageWidth, stageHeight);
             this.createContinueButton(stageWidth, stageHeight);
         });
 
-        //Exit Button
-        const exitButton = new ExitButton(this.stage, this.layer, () => {
+        // Exit Button
+        new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
-            window.location.href = '/login.hmtl'; //go to login page
+            window.location.href = '/login.html';
         });
+
+        // Info Button
+        new InfoButton(this.stage, this.layer);
     }
 
-    // --- NEW: Add owl image like OrderSummary page ---
     private loadOwlImage(stageWidth: number, stageHeight: number, onLoad: () => void): void {
         const imageObj = new Image();
         imageObj.onload = () => {
+            if (!this.isActive) return; // Guard
+
             const aspectRatio = imageObj.width / imageObj.height;
             const owlWidth = stageWidth * 0.35;
             const owlHeight = owlWidth / aspectRatio;
@@ -74,27 +111,25 @@ export class DaySummaryScreen {
         imageObj.src = '/end-owl.png';
     }
 
-    /// --- NEW: Group receipt components ---
     private createReceiptGroup(stageWidth: number, stageHeight: number): void {
         const imageObj = new Image();
         imageObj.onload = () => {
+            if (!this.isActive) return; // Guard
+
             const aspectRatio = imageObj.width / imageObj.height;
             const receiptWidth = stageWidth * 0.3;
             const receiptHeight = receiptWidth / aspectRatio;
 
-            // --- FONT AND SPACING CONSTANTS ---
             const FONT_FAMILY = 'Doto';
-            const BASE_FONT_SIZE = Math.min(stageWidth * 0.018, 18); // Use a single size for list items
-            const LINE_ADVANCE = receiptHeight * 0.035; // 3.5% of receipt height for line spacing
+            const BASE_FONT_SIZE = Math.min(stageWidth * 0.014, 14);
+            const LINE_ADVANCE = receiptHeight * 0.035;
 
-            // Calculate center Y position for the receipt group
             const GROUP_VISUAL_HEIGHT = receiptHeight; 
             const CENTERED_Y = (stageHeight / 2) - (GROUP_VISUAL_HEIGHT / 2);
 
-            // Create group to hold receipt and text
             const receiptGroup = new Konva.Group({
                 x: stageWidth * 0.6 + (stageWidth * 0.4 - receiptWidth) / 2, 
-                y: CENTERED_Y, // Centered vertically
+                y: CENTERED_Y,
             });
             
             const receipt = new Konva.Image({
@@ -104,12 +139,11 @@ export class DaySummaryScreen {
             });
             receiptGroup.add(receipt);
 
-            let currentY = receiptHeight * 0.2; // Start point adjusted lower to clear "END OF DAY SUMMARY"
+            let currentY = receiptHeight * 0.2;
 
-            // Day Text (Slightly larger, separate size)
             const dayText = new Konva.Text({
                 x: receiptWidth * 0.15,
-                y: receiptHeight * 0.14, // Fixed position below static header
+                y: receiptHeight * 0.14,
                 width: receiptWidth * 0.7,
                 text: `DAY ${this.currentDay}`,
                 fontSize: Math.min(stageWidth * 0.016, 20),
@@ -120,7 +154,6 @@ export class DaySummaryScreen {
             });
             receiptGroup.add(dayText);
 
-            // Sales (Use BASE_FONT_SIZE and LINE_ADVANCE)
             const salesText = new Konva.Text({
                 x: receiptWidth * 0.1,
                 y: currentY,
@@ -134,7 +167,6 @@ export class DaySummaryScreen {
             receiptGroup.add(salesText);
             currentY += LINE_ADVANCE * 1.5;
 
-            // Tips Earned
             const tipsText = new Konva.Text({
                 x: receiptWidth * 0.1,
                 y: currentY,
@@ -148,7 +180,6 @@ export class DaySummaryScreen {
             receiptGroup.add(tipsText);
             currentY += LINE_ADVANCE * 1.5;
 
-            // Expenses
             const expensesText = new Konva.Text({
                 x: receiptWidth * 0.1,
                 y: currentY,
@@ -160,9 +191,8 @@ export class DaySummaryScreen {
                 fontStyle: 'bold'
             });
             receiptGroup.add(expensesText);
-            currentY += LINE_ADVANCE * 1.5; // Extra space before Net Change
+            currentY += LINE_ADVANCE * 1.5;
 
-            // Combined Profits & Losses
             const netChange = this.daySales + this.dayTips - this.dayExpenses; 
             const netChangeColor = netChange >= 0 ? '#006400' : '#8B0000';
             const netChangeText = new Konva.Text({
@@ -178,7 +208,6 @@ export class DaySummaryScreen {
             receiptGroup.add(netChangeText);
             currentY += LINE_ADVANCE * 1.5;
 
-            // Current Funds
             const fundsText = new Konva.Text({
                 x: receiptWidth * 0.1,
                 y: currentY,
@@ -196,15 +225,11 @@ export class DaySummaryScreen {
         imageObj.src = '/end-receipt.png'
     }
 
-    // MODIFIED: Continue Button
     private createContinueButton(stageWidth: number, stageHeight: number): void {
         const buttonWidth = Math.min(stageWidth * 0.25, 300);
         const buttonHeight = Math.min(stageHeight * 0.08, 60);
         
-        // Responsive font size for continue
         const textFontSize = Math.min(stageWidth * 0.02, 24);
-
-        // Calculate center Y
         const textCenterYOffset = (buttonHeight / 2) - (textFontSize / 2);
 
         const buttonGroup = new Konva.Group({
@@ -236,6 +261,7 @@ export class DaySummaryScreen {
             width: buttonWidth,
             text: 'CONTINUE',
             fontSize: textFontSize,
+            fontFamily: "Press Start 2P",
             fill: 'white',
             align: 'center',
             verticalAlign: 'middle',
@@ -247,8 +273,11 @@ export class DaySummaryScreen {
         buttonGroup.add(text);
 
         buttonGroup.on('click tap', () => {
+            // 3. IMPORTANT: Cleanup this screen before moving on!
+            this.cleanup(); 
             this.onContinue();
         });
+        
         buttonGroup.on('mouseenter', () => {
             this.stage.container().style.cursor = 'pointer';
             rect.fill('#45a049');
@@ -270,10 +299,21 @@ export class DaySummaryScreen {
         //Info Button
         const infoButton = new InfoButton(this.stage, this.layer);
         
+        // Add savings tracker
+        this.savingsTracker = new SavingsTracker(this.layer, this.stage);
+        this.savingsTracker.update(this.currentFunds);
+
         this.layer.draw();
     }
 
     public cleanup(): void {
+        // 4. Mark inactive immediately
+        this.isActive = false;
+
+        if (this.resizeHandler) {
+            window.removeEventListener('resize', this.resizeHandler);
+            this.resizeHandler = null;
+        }
         this.layer.destroyChildren();
     }
 }

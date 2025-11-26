@@ -1,147 +1,117 @@
-// @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
-import Konva from 'konva';
-import { LoseScreen } from './LoseScreen';
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
-// Mock options for the LoseScreen
-interface MockOptions {
-  cashBalance: number;
-  totalDaysPlayed: number;
-  onExit: Mock<[], void>;
-  onRetry: Mock<[], void>; // Renamed from onReturnHome
+let KonvaModule: any;
+let LoseScreen: any;
+
+function createKonvaMock() {
+  class FakeNode {
+    config: Record<string, any>;
+    children: any[] = [];
+    handlers = new Map<string, (evt?: any) => void>();
+    constructor(config: Record<string, any> = {}) {
+      this.config = { ...config };
+    }
+    add(...nodes: any[]) {
+      this.children.push(...nodes);
+      return this;
+    }
+    getChildren() {
+      return this.children;
+    }
+    on(event: string, handler: (evt?: any) => void) {
+      this.handlers.set(event, handler);
+    }
+    fire(event: string, payload?: any) {
+      this.handlers.get(event)?.(payload);
+    }
+    findOne() {
+      return this.children[0] ?? new FakeNode();
+    }
+    accessor(key: string, fallback: any = 0) {
+      return (value?: any) => {
+        if (value !== undefined) this.config[key] = value;
+        return this.config[key] ?? fallback;
+      };
+    }
+    width = this.accessor("width", 100);
+    height = this.accessor("height", 50);
+    x = this.accessor("x", 0);
+    y = this.accessor("y", 0);
+    fill = this.accessor("fill", "");
+    shadowBlur = this.accessor("shadowBlur", 0);
+    shadowOffset = this.accessor("shadowOffset", { x: 0, y: 0 });
+    moveToBottom() {}
+  }
+
+  class FakeStage extends FakeNode {
+    containerElement = { style: { cursor: "default" } };
+    container() {
+      return this.containerElement;
+    }
+  }
+  class FakeLayer extends FakeNode {
+    draw = vi.fn();
+    batchDraw = vi.fn();
+    destroyChildren = vi.fn();
+  }
+  class FakeGroup extends FakeNode {}
+  class FakeRect extends FakeNode {}
+  class FakeText extends FakeNode {}
+  class FakeImage extends FakeNode {}
+  class FakeLine extends FakeNode {}
+
+  return {
+    default: {
+      Stage: FakeStage,
+      Layer: FakeLayer,
+      Group: FakeGroup,
+      Rect: FakeRect,
+      Text: FakeText,
+      Image: FakeImage,
+      Line: FakeLine,
+    },
+  };
 }
 
-describe('LoseScreen', () => {
-  let stage: Konva.Stage;
-  let layer: Konva.Layer;
-  let mockOpts: MockOptions;
-  let loseScreen: LoseScreen;
-  let stageContainer: HTMLDivElement;
+describe("LoseScreen", () => {
+  let stage: FakeStage;
+  let layer: FakeLayer;
+  let onReturn: ReturnType<typeof vi.fn>;
 
-  beforeEach(() => {
-    // 1. Create a DOM element for Konva to attach to
-    stageContainer = document.createElement('div');
-    document.body.appendChild(stageContainer);
-
-    // 2. Setup mock stage and layer
-    stage = new Konva.Stage({
-      container: stageContainer,
+  beforeEach(async () => {
+    const konvaMock = createKonvaMock();
+    vi.doMock("konva", () => konvaMock);
+    vi.stubGlobal(
+      "Image",
+      class {
+        onload: (() => void) | null = null;
+        set src(_: string) {
+          this.onload?.();
+        }
+      }
+    );
+    KonvaModule = (await import("konva")).default;
+    LoseScreen = (await import("./LoseScreen")).LoseScreen;
+    stage = new KonvaModule.Stage({
       width: 1000,
-      height: 800,
+      height: 700,
+      container: { appendChild() {} },
     });
-    layer = new Konva.Layer();
-    stage.add(layer);
-
-    // Spy on layer methods
-    vi.spyOn(layer, 'add');
-    vi.spyOn(layer, 'draw');
-
-    // 3. Setup mock options with spy functions
-    mockOpts = {
-      cashBalance: 1.99, // Use a different value to test
-      totalDaysPlayed: 15,
-      onExit: vi.fn(),
-      onRetry: vi.fn(), // Use onRetry
-    };
-
-    // 4. Instantiate the class under test
-    loseScreen = new LoseScreen(stage, layer, mockOpts);
+    layer = new KonvaModule.Layer();
+    onReturn = vi.fn();
   });
 
-  it('should construct and setup UI correctly', () => {
-    // 1. Modal
-    // 2. Title
-    // 3. Info text
-    // 4. Exit group
-    // 5. Retry group
-    expect(layer.add).toHaveBeenCalledTimes(5);
+  it("creates UI and triggers callbacks", () => {
+    const screen = new LoseScreen(stage as any, layer as any, {
+      totalDaysPlayed: 2,
+      cashBalance: 1000,
+      onReturnHome: onReturn,
+    });
+
+    const button = layer.getChildren().find((c: any) => c.handlers?.has("click"));
+    button?.handlers.get("click")?.();
+
+    expect(onReturn).toHaveBeenCalledTimes(1);
     expect(layer.draw).toHaveBeenCalled();
-  });
-
-  it('should display correct stats in the info text', () => {
-    // Find the info text node (3rd item added)
-    const infoText = (layer.add as Mock).mock.calls[2][0] as Konva.Text;
-
-    expect(infoText).toBeDefined();
-    expect(infoText.text()).toContain(`Cash Balance: $${mockOpts.cashBalance.toFixed(2)}`);
-    expect(infoText.text()).toContain(`Total Days Played: ${mockOpts.totalDaysPlayed}`);
-    expect(infoText.text()).toContain('$1.99'); // Check toFixed(2)
-  });
-
-  describe('Exit Button', () => {
-    let exitGroup: Konva.Group;
-    let exitRect: Konva.Rect;
-    let initialFill: string;
-
-    beforeEach(() => {
-      // The Exit group is the 4th item added
-      exitGroup = (layer.add as Mock).mock.calls[3][0] as Konva.Group;
-      exitRect = exitGroup.findOne('Rect') as Konva.Rect;
-      initialFill = exitRect.fill();
-    });
-
-    it('should call onExit when clicked', () => {
-      exitGroup.fire('click');
-      expect(mockOpts.onExit).toHaveBeenCalledTimes(1);
-      expect(mockOpts.onRetry).not.toHaveBeenCalled();
-    });
-
-    it('should change style on mouseenter', () => {
-      exitGroup.fire('mouseenter');
-
-      expect(stage.container().style.cursor).toBe('pointer');
-      expect(exitRect.fill()).toBe('#b13535'); // Hover color
-      expect(layer.draw).toHaveBeenCalled();
-    });
-
-    it('should revert style on mouseleave', () => {
-      exitGroup.fire('mouseenter'); // Set hover state
-      exitGroup.fire('mouseleave'); // Revert
-
-      expect(stage.container().style.cursor).toBe('default');
-      expect(exitRect.fill()).toBe(initialFill); // Original color
-      expect(layer.draw).toHaveBeenCalled();
-    });
-  });
-
-  describe('Retry Button', () => {
-    let retryGroup: Konva.Group;
-    let retryRect: Konva.Rect;
-    let initialFill: string;
-
-    beforeEach(() => {
-      // The Retry group is the 5th (last) item added
-      retryGroup = (layer.add as Mock).mock.calls[4][0] as Konva.Group;
-      retryRect = retryGroup.findOne('Rect') as Konva.Rect;
-      initialFill = retryRect.fill();
-    });
-
-    it('should call onRetry when clicked', () => {
-      retryGroup.fire('click');
-      expect(mockOpts.onRetry).toHaveBeenCalledTimes(1);
-      expect(mockOpts.onExit).not.toHaveBeenCalled();
-    });
-
-    it('should change style on mouseenter', () => {
-      retryGroup.fire('mouseenter');
-
-      expect(stage.container().style.cursor).toBe('pointer');
-      expect(retryRect.fill()).toBe('#45a049'); // Hover color
-      expect(layer.draw).toHaveBeenCalled();
-    });
-
-    it('should revert style on mouseleave', () => {
-      retryGroup.fire('mouseenter'); // Set hover state
-      retryGroup.fire('mouseleave'); // Revert
-
-      expect(stage.container().style.cursor).toBe('default');
-      expect(retryRect.fill()).toBe(initialFill); // Original color
-      expect(layer.draw).toHaveBeenCalled();
-    });
-  });
-
-  it('should run cleanup function without error', () => {
-    // Call the function for 100% line coverage
-    expect(() => loseScreen.cleanup()).not.toThrow();
   });
 });

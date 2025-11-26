@@ -83,6 +83,7 @@ vi.mock("konva", () => {
   class FakeGroup extends FakeNode {
     readonly children: unknown[] = [];
     readonly handlers = new Map<string, Handler>();
+    removed = false;
 
     constructor(config?: Record<string, unknown>) {
       super(config);
@@ -96,6 +97,10 @@ vi.mock("konva", () => {
 
     on(event: string, handler: Handler) {
       this.handlers.set(event, handler);
+    }
+
+    remove() {
+      this.removed = true;
     }
   }
 
@@ -176,7 +181,7 @@ describe("OrderScreen", () => {
     const buttonGroup = konvaState.groups.find((group) => group.handlers.has("click"));
     expect(buttonGroup).toBeTruthy();
     buttonGroup!.handlers.get("click")!();
-    expect(onContinue).toHaveBeenCalledWith(expect.any(Number));
+    expect(onContinue).toHaveBeenCalledWith(expect.any(Number), expect.any(Array));
 
     const hoverRect = konvaState.rects[0];
     hoverRect.handlers.get("mouseenter")?.call(null);

@@ -44,7 +44,7 @@ export class ExitButton{
             height: buttonHeight,
             text: 'EXIT',
             fontSize: Math.min(stageWidth*0.022,20),
-            fontFamily: 'Arial',
+            fontFamily: 'Press Start 2P',
             fontStyle: 'bold',
             fill: '#FFFFFF',
             align: 'center',

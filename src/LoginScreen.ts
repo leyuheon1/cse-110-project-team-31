@@ -12,6 +12,8 @@ export class LoginScreen {
     private cursor!: Konva.Rect;
     private cursorInterval: number | null = null;
     private keyboardHandler: (e: KeyboardEvent) => void;
+    private resizeHandler: () => void; // Store reference for cleanup
+    private animationFrameId: number | null = null; // For smooth resizing
 
     private inputBox!: Konva.Rect;
     private loginBackground: Konva.Image | null = null;
@@ -22,8 +24,27 @@ export class LoginScreen {
         this.onLogin = onLogin;
 
         this.keyboardHandler = this.handleKeyPress.bind(this);
+        
+        // FIX 1: Bind the resize handler so we can add/remove it
+        this.resizeHandler = this.handleResize.bind(this);
 
         this.setupUI();
+        
+        // FIX 2: Add the event listener
+        window.addEventListener('resize', this.resizeHandler);
+    }
+
+    // FIX 3: Handle the resize efficiently
+    private handleResize(): void {
+        if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+
+        this.animationFrameId = requestAnimationFrame(() => {
+            // Stop blinking cursor from the 'old' UI
+            if (this.cursorInterval) clearInterval(this.cursorInterval);
+            
+            this.layer.destroyChildren();
+            this.setupUI(); 
+        });
     }
 
     private setupUI(): void {
@@ -33,6 +54,9 @@ export class LoginScreen {
         // BACKGROUND IMAGE
         const bgImg = new Image();
         bgImg.onload = () => {
+            // Check if layer was destroyed during load (prevents errors on rapid resize)
+            if (this.layer.children.length === 0 && this.loginBackground) return; 
+
             this.loginBackground = new Konva.Image({
                 x: 0,
                 y: 0,
@@ -42,15 +66,18 @@ export class LoginScreen {
             });
             this.layer.add(this.loginBackground);
             this.loginBackground.moveToBottom();
-            this.layer.batchDraw();
+            this.layer.batchDraw(); // Use batchDraw for better performance
         };
         bgImg.src = '/login-background.png';
 
         // TITLE IMAGE
         const titleImg = new Image();
         titleImg.onload = () => {
+             // Check if layer is valid
+            if (this.layer.children.length === 0) return;
+
             const aspect = titleImg.width / titleImg.height;
-            const w = 600;
+            const w = Math.min(600, stageWidth * 0.8); // Make responsive
             const h = w / aspect;
 
             const title = new Konva.Image({
@@ -62,7 +89,7 @@ export class LoginScreen {
             });
             this.layer.add(title);
             title.moveToTop();
-            this.layer.draw();
+            this.layer.batchDraw();
         };
         titleImg.src = '/title-logo.png';
 
@@ -81,16 +108,17 @@ export class LoginScreen {
         });
         this.layer.add(subtitle);
 
-        // INPUT BOX (initial green border)
-        const boxWidth = stageWidth * 0.4;
+        // INPUT BOX
+        const boxWidth = Math.min(stageWidth * 0.6, 500); // Responsive width
 
+        // FIX 4: Check 'this.inputFocused' to restore the correct border color on resize
         this.inputBox = new Konva.Rect({
             x: (stageWidth - boxWidth) / 2,
             y: stageHeight * 0.45,
             width: boxWidth,
             height: 60,
             fill: 'white',
-            stroke: '#2ecc71',       // GREEN (default)
+            stroke: this.inputFocused ? '#f1c40f' : '#2ecc71', // Restore color state
             strokeWidth: 4,
             cornerRadius: 10
         });
@@ -105,7 +133,7 @@ export class LoginScreen {
         this.inputText = new Konva.Text({
             x: (stageWidth - boxWidth) / 2 + 15,
             y: stageHeight * 0.45 + 18,
-            text: '',
+            text: this.username, // FIX 5: Restore the text user already typed
             fontFamily: 'Press Start 2P',
             fontSize: 24,
             fill: 'black',
@@ -113,25 +141,35 @@ export class LoginScreen {
         });
         this.layer.add(this.inputText);
 
-        // Change cursor to pointer when hovering over input box
+        this.inputText.listening(false);
+
         this.inputBox.on('mouseenter', () => {
-            this.stage.container().style.cursor = 'text'; // text cursor
+            this.stage.container().style.cursor = 'text';
         });
 
         this.inputBox.on('mouseleave', () => {
             this.stage.container().style.cursor = 'default';
         });
 
-        // CURSOR (hidden until focus)
+        // CURSOR
+        // Calculate initial cursor position based on restored text
+        const textWidth = this.inputText.getTextWidth();
         this.cursor = new Konva.Rect({
-            x: this.inputText.x() + 2,
+            x: this.inputText.x() + textWidth + 2,
             y: this.inputText.y(),
             width: 2,
             height: this.inputText.fontSize(),
             fill: 'black',
-            visible: false
+            visible: this.inputFocused // Visible if we were already focused
         });
         this.layer.add(this.cursor);
+
+        // FIX 6: If we were focused before resize, restart the blinking
+        if (this.inputFocused) {
+            this.startBlinking();
+            // Ensure event listener is attached (it might be duplicate but that's safe in addEventListener)
+            window.addEventListener('keydown', this.keyboardHandler);
+        }
 
         // START BUTTON
         this.createStartButton(stageWidth, stageHeight);
@@ -139,7 +177,15 @@ export class LoginScreen {
         this.layer.draw();
     }
 
-    // FOCUS INPUT (yellow border + blinking cursor)
+    private startBlinking(): void {
+        if (this.cursorInterval) clearInterval(this.cursorInterval);
+        
+        this.cursorInterval = window.setInterval(() => {
+            this.cursor.visible(!this.cursor.visible());
+            this.layer.batchDraw();
+        }, 500);
+    }
+
     private focusInput(): void {
         if (!this.inputFocused) {
             this.inputFocused = true;
@@ -147,18 +193,13 @@ export class LoginScreen {
             this.inputBox.stroke('#f1c40f'); // YELLOW
             this.cursor.visible(true);
 
-            // Begin blinking cursor
-            this.cursorInterval = window.setInterval(() => {
-                this.cursor.visible(!this.cursor.visible());
-                this.layer.draw();
-            }, 500);
+            this.startBlinking();
 
             window.addEventListener('keydown', this.keyboardHandler);
             this.layer.draw();
         }
     }
 
-    // HANDLE KEYBOARD INPUT
     private handleKeyPress(e: KeyboardEvent): void {
         if (!this.inputFocused) return;
 
@@ -188,21 +229,18 @@ export class LoginScreen {
         const textWidth = this.inputText.getTextWidth();
         this.cursor.x(this.inputText.x() + textWidth + 2);
 
-        this.layer.draw();
+        this.layer.batchDraw();
     }
 
-    // START GAME BUTTON (with wood post + arrow restored)
     private createStartButton(stageWidth: number, stageHeight: number): void {
         const width = Math.min(stageWidth * 0.25, 300);
         const height = 60;
 
-        // Main sign group (everything is inside this)
         const signGroup = new Konva.Group({
             x: (stageWidth - width) / 2,
             y: stageHeight * 0.62,
         });
 
-        // Wooden board
         const board = new Konva.Rect({
             width,
             height,
@@ -214,7 +252,6 @@ export class LoginScreen {
             shadowOpacity: 0.6
         });
 
-        // Wooden arrow pointer
         const arrow = new Konva.Line({
             points: [
                 width, 0,
@@ -228,7 +265,6 @@ export class LoginScreen {
             shadowOpacity: 0.5
         });
 
-        // Wooden post under the sign
         const post = new Konva.Rect({
             x: width / 2 - 10,
             y: height,
@@ -241,7 +277,6 @@ export class LoginScreen {
             shadowOpacity: 0.5
         });
 
-        // Text on the board
         const text = new Konva.Text({
             width,
             height,
@@ -253,13 +288,11 @@ export class LoginScreen {
             verticalAlign: 'middle'
         });
 
-        // Add everything to ONE group
         signGroup.add(post);
         signGroup.add(board);
         signGroup.add(arrow);
         signGroup.add(text);
 
-        // Click behavior
         signGroup.on('click', () => {
             if (this.username.trim() === '') {
                 alert('Please enter a name!');
@@ -268,13 +301,12 @@ export class LoginScreen {
             this.finishLogin();
         });
 
-        // Hover animation (affects whole sign)
         signGroup.on('mouseenter', () => {
             this.stage.container().style.cursor = 'pointer';
             board.shadowBlur(20);
             board.shadowOpacity(0.9);
             board.shadowColor('#ffdd77');
-            this.layer.draw();
+            this.layer.batchDraw();
         });
 
         signGroup.on('mouseleave', () => {
@@ -282,13 +314,12 @@ export class LoginScreen {
             board.shadowBlur(8);
             board.shadowOpacity(0.6);
             board.shadowColor('#654321');
-            this.layer.draw();
+            this.layer.batchDraw();
         });
 
         this.layer.add(signGroup);
     }
 
-    // COMPLETE LOGIN
     private finishLogin(): void {
         localStorage.setItem('username', this.username.trim());
         this.cleanup();
@@ -297,8 +328,13 @@ export class LoginScreen {
 
     public cleanup(): void {
         if (this.cursorInterval) clearInterval(this.cursorInterval);
+        
+        // FIX 7: Remove all listeners correctly
         window.removeEventListener('keydown', this.keyboardHandler);
+        window.removeEventListener('resize', this.resizeHandler); // Important!
 
+        if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+        
         if (this.loginBackground) this.loginBackground.destroy();
     }
 }

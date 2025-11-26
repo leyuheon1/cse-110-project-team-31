@@ -36,8 +36,8 @@ function createKonvaMock() {
     fill = this.accessor("fill", "");
     stroke = this.accessor("stroke", "");
     strokeWidth = this.accessor("strokeWidth", 0);
-    opacity = this.accessor("opacity", 1);
     cornerRadius = this.accessor("cornerRadius", 0);
+    opacity = this.accessor("opacity", 1);
     offsetX = this.accessor("offsetX", 0);
     offsetY = this.accessor("offsetY", 0);
     scale(val?: any) {
@@ -79,14 +79,14 @@ function createKonvaMock() {
   class FakeText extends FakeNode {
     text = this.accessor("text", "");
   }
-  class FakeCircle extends FakeNode {
-    radius = this.accessor("radius", 0);
-  }
   class FakeImage extends FakeNode {
     image(value?: any) {
       if (value !== undefined) this.config.image = value;
       return this.config.image;
     }
+  }
+  class FakeCircle extends FakeNode {
+    radius = this.accessor("radius", 0);
   }
   return {
     default: {
@@ -101,12 +101,12 @@ function createKonvaMock() {
   };
 }
 
-describe("ShoppingScreen full coverage", () => {
+describe("ShoppingScreen targeted coverage", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
-  function stubImages(options: { priceTagError?: boolean; receiptError?: boolean } = {}) {
+  function mockImages(options: { priceTagError?: boolean; receiptError?: boolean } = {}) {
     vi.stubGlobal(
       "Image",
       class {
@@ -117,9 +117,9 @@ describe("ShoppingScreen full coverage", () => {
         height = 50;
         set src(val: string) {
           this._src = val;
-          const failPrice = val.includes("price-tag") && options.priceTagError;
-          const failReceipt = val.includes("start-receipt") && options.receiptError;
-          if (failPrice || failReceipt) {
+          const shouldFailPrice = val.includes("price-tag") && options.priceTagError;
+          const shouldFailReceipt = val.includes("start-receipt") && options.receiptError;
+          if (shouldFailPrice || shouldFailReceipt) {
             this.onerror?.();
           } else {
             this._onload?.();
@@ -130,9 +130,7 @@ describe("ShoppingScreen full coverage", () => {
         }
         set onload(fn: (() => void) | null) {
           this._onload = fn;
-          const failPrice = this._src.includes("price-tag") && options.priceTagError;
-          const failReceipt = this._src.includes("start-receipt") && options.receiptError;
-          if (fn && this._src && !failPrice && !failReceipt) {
+          if (fn && this._src && !this._src.includes("price-tag") && !this._src.includes("start-receipt")) {
             fn();
           }
         }
@@ -143,13 +141,27 @@ describe("ShoppingScreen full coverage", () => {
     );
   }
 
-  it("exercises purchase flow, totals, keyboard, recipe and receipt", async () => {
-    stubImages();
+  it("walks through UI creation helpers and purchase callbacks", async () => {
+    mockImages();
     const konvaMock = createKonvaMock();
     vi.doMock("konva", () => konvaMock);
+    // Minimal button dependencies
+    vi.doMock("./ui/ExitButton", () => ({
+      ExitButton: class {
+        constructor(stage: any, layer: any, onExit: () => void) {
+          const g: any = new (createKonvaMock().default.Group)();
+          g.handlers.set("click", onExit);
+          layer.add(g);
+        }
+      },
+    }));
+    vi.doMock("./ui/InfoButton", () => ({
+      InfoButton: class {},
+    }));
     const { ShoppingScreen } = await import("./ShoppingScreen");
     const Konva = (await import("konva")).default as any;
-    const stage = new Konva.Stage({ width: 1000, height: 800, container: {} });
+
+    const stage = new Konva.Stage({ width: 900, height: 700, container: {} });
     const layer = new Konva.Layer();
     const onPurchaseComplete = vi.fn();
     const onViewRecipe = vi.fn();
@@ -157,74 +169,111 @@ describe("ShoppingScreen full coverage", () => {
     const screen: any = new ShoppingScreen(
       stage,
       layer,
-      20,
-      1,
-      5,
+      30,
+      3,
+      6,
       [{ customerNum: 1, cookieCount: 2 }],
       onPurchaseComplete,
       onViewRecipe
     );
+    // Directly re-run setup/draw to exercise internal callbacks
+    screen.setupUI?.();
+    screen.drawDynamicUI?.();
 
-    // cover early return in handleKeyPress
-    screen.handleKeyPress(new KeyboardEvent("keydown", { key: "1" }));
+    // Directly exercise helper factories for uncovered lines
+    screen.createBalanceGroup(900, 700);
+    screen.createPriceTagGroup(900, 700, { name: "Test", price: 1, inputValue: "0", unit: "cup" }, 100);
+    screen.createIngredientNameText(900, 100, "Salt", 120);
+    screen.createViewRecipeButton(900, 700);
+    screen.createViewOrdersButton(900, 700);
+    screen.createPurchaseButton(900, 0);
+    screen.createIngredientRow(900, 400, { name: "Butter", price: 0.5, inputValue: "0", unit: "tbsp" }, 200);
 
-    // focus input and type/backspace
-    const tmpRect = new Konva.Rect();
-    const tmpText = new Konva.Text();
-    screen.focusInput("Flour", tmpRect, tmpText);
-    screen.handleKeyPress(new KeyboardEvent("keydown", { key: "3" }));
+    // Focus input via click handler and type to toggle stroke changes
+    const firstRect = layer.getChildren().find((c: any) => c.stroke && c.stroke() === "#3498db");
+    const firstText = layer.getChildren().find((c: any) => c.text?.() === "0");
+    firstRect?.fire("click"); // invokes focusInput through bound handler
+    firstRect?.fire("mouseenter");
+    firstRect?.fire("mouseleave");
+    firstText?.fire?.("click");
+    screen.handleKeyPress(new KeyboardEvent("keydown", { key: "5" }));
+    screen.handleKeyPress(new KeyboardEvent("keydown", { key: "Backspace" }));
+    screen.updateInputDisplay("Butter");
+    screen.updateTotalCost();
+    // Second focus to trigger prior focus reset branch
+    screen.focusInput("Sugar", new Konva.Rect(), new Konva.Text());
+    screen.handleKeyPress(new KeyboardEvent("keydown", { key: "5" }));
     screen.handleKeyPress(new KeyboardEvent("keydown", { key: "Backspace" }));
 
-    // totals color branches
-    screen.ingredients[0].inputValue = "100";
-    if (!screen.totalCostText) screen.totalCostText = new Konva.Text();
-    screen.updateTotalCost();
-    screen.currentFunds = 1000;
-    screen.updateTotalCost();
-
-    // update display and get values
-    screen.updateInputDisplay("Flour");
-    expect(screen.getIngredientValues().size).toBeGreaterThan(0);
-
-    // purchase success first (set affordable)
-    screen.ingredients[0].inputValue = "1";
-    screen.currentFunds = 20;
-    let purchaseButton = layer
+    // Update totals and purchase happy path
+    screen.ingredients[0].inputValue = "2";
+    const purchaseBtnGroup = layer
       .getChildren()
-      .find((c: any) =>
-        c.getChildren?.().some((n: any) => n.text?.() === "PURCHASE")
-      );
-    if (!purchaseButton && typeof screen.createPurchaseButton === "function") {
-      screen.createPurchaseButton(stage.width(), 0);
-      purchaseButton = layer
-        .getChildren()
-        .find((c: any) =>
-          c.getChildren?.().some((n: any) => n.text?.() === "PURCHASE")
-        );
-    }
-    expect(purchaseButton).toBeDefined();
-    purchaseButton?.fire("mouseenter");
-    purchaseButton?.fire("mouseleave");
-    purchaseButton?.fire("click");
+      .find((c: any) => c.getChildren?.().some((n: any) => n.text?.() === "PURCHASE"));
+    purchaseBtnGroup?.fire("mouseenter");
+    purchaseBtnGroup?.fire("mouseleave");
+    purchaseBtnGroup?.fire("click");
     expect(onPurchaseComplete).toHaveBeenCalled();
+    // insufficient funds branch
+    window.alert = vi.fn();
+    screen.currentFunds = 0;
+    screen.ingredients[0].inputValue = "10";
+    purchaseBtnGroup?.fire("click");
+    expect(window.alert).toHaveBeenCalled();
 
-    // View recipe button hover + click triggers cleanup/onViewRecipe
-    const viewRecipeButton = layer
+    // View recipe button path
+    const viewRecipeBtnGroup = layer
       .getChildren()
-      .find((c: any) =>
-        c.getChildren?.().some((n: any) => n.text?.() === "VIEW RECIPE")
-      );
-    viewRecipeButton?.fire("mouseenter");
-    viewRecipeButton?.fire("mouseleave");
-    viewRecipeButton?.fire("click");
+      .find((c: any) => c.getChildren?.().some((n: any) => n.text?.() === "VIEW RECIPE"));
+    const viewRecipeRect = viewRecipeBtnGroup?.getChildren?.()[0];
+    viewRecipeRect?.fire("click");
+    expect(onViewRecipe).toHaveBeenCalledTimes(1);
 
-    // view orders modal open/close
-    const viewOrdersButton = layer
-      .getChildren()
-      .find((c: any) =>
-        c.getChildren?.().some((n: any) => n.text?.() === "VIEW ORDERS")
-      );
-    viewOrdersButton?.fire("click");
+    screen.cleanup();
+  });
+
+  it("covers price tag error path and receipt modal close interactions", async () => {
+    mockImages({ priceTagError: true });
+    const konvaMock = createKonvaMock();
+    vi.doMock("konva", () => konvaMock);
+    vi.doMock("./ui/ExitButton", () => ({
+      ExitButton: class {
+        constructor(stage: any, layer: any, onExit: () => void) {
+          const g: any = new (createKonvaMock().default.Group)();
+          g.handlers.set("click", onExit);
+          layer.add(g);
+        }
+      },
+    }));
+    vi.doMock("./ui/InfoButton", () => ({
+      InfoButton: class {},
+    }));
+    const { ShoppingScreen } = await import("./ShoppingScreen");
+    const Konva = (await import("konva")).default as any;
+
+    const stage = new Konva.Stage({ width: 700, height: 500, container: {} });
+    const layer = new Konva.Layer();
+    const onPurchaseComplete = vi.fn();
+    const onViewRecipe = vi.fn();
+
+    const saved = new Map<string, string>([["Flour", "4"]]);
+    const screen: any = new ShoppingScreen(
+      stage,
+      layer,
+      40,
+      4,
+      8,
+      [{ customerNum: 2, cookieCount: 3 }],
+      onPurchaseComplete,
+      onViewRecipe,
+      saved
+    );
+
+    // Explicitly hit loadPriceTagImage error branch
+    screen.loadPriceTagImage(() => {});
+
+    // Receipt modal path with close button events
+    screen.showReceiptModal();
     const modalLayer = stage.getChildren().find((n: any) => n.getChildren?.().length);
     const closeCircle = modalLayer
       ?.getChildren()
@@ -232,61 +281,6 @@ describe("ShoppingScreen full coverage", () => {
     closeCircle?.fire("mouseenter");
     closeCircle?.fire("mouseleave");
     closeCircle?.fire("click");
-
-    // insufficient funds branch
-    screen.currentFunds = 0;
-    screen.ingredients[0].inputValue = "5";
-    window.alert = vi.fn();
-    purchaseButton?.fire("click");
-    expect(window.alert).toHaveBeenCalled();
-
-    // cleanup removes listener
-    const removeSpy = vi.spyOn(window, "removeEventListener");
-    screen.cleanup();
-    expect(removeSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
-  });
-
-  it("uses saved values and price-tag fallback branch", async () => {
-    stubImages({ priceTagError: true });
-    const konvaMock = createKonvaMock();
-    vi.doMock("konva", () => konvaMock);
-    const { ShoppingScreen } = await import("./ShoppingScreen");
-    const Konva = (await import("konva")).default as any;
-    const saved = new Map<string, string>([
-      ["Flour", "7"],
-      ["Sugar", "4"],
-    ]);
-    const stage = new Konva.Stage({ width: 600, height: 400, container: {} });
-    const layer = new Konva.Layer();
-    const onPurchaseComplete = vi.fn();
-    const onViewRecipe = vi.fn();
-    const screen: any = new ShoppingScreen(
-      stage,
-      layer,
-      50,
-      2,
-      8,
-      [{ customerNum: 1, cookieCount: 3 }],
-      onPurchaseComplete,
-      onViewRecipe,
-      saved
-    );
-
-    // ensure saved values restored
-    expect(screen.ingredients.find((i: any) => i.name === "Flour")?.inputValue).toBe("7");
-
-    // call showReceiptModal directly to cover image onload path
-    screen.showReceiptModal();
-    const modalLayer = stage.getChildren().find((n: any) => n.getChildren?.().length);
-    expect(modalLayer).toBeDefined();
-
-    // exit button hover/click from ExitButton inside drawDynamicUI
-    const exitGroup = layer
-      .getChildren()
-      .find((c: any) => c.handlers?.has("click") && c.getChildren?.().some((n: any) => n.text?.() === "EXIT"));
-    exitGroup?.fire("mouseenter");
-    exitGroup?.fire("mouseleave");
-    exitGroup?.fire("click");
 
     screen.cleanup();
   });

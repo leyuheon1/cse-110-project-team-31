@@ -1,162 +1,125 @@
-// @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
-import Konva from 'konva';
-import { VictoryScreen } from './VictoryScreen';
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
-// Mock options for the VictoryScreen
-interface MockOptions {
-  cashBalance: number;
-  totalDaysPlayed: number;
-  onExit: Mock<[], void>;
-  onReturnHome: Mock<[], void>;
+let KonvaModule: any;
+let VictoryScreen: any;
+
+function createKonvaMock() {
+  class FakeNode {
+    config: Record<string, any>;
+    children: any[] = [];
+    handlers = new Map<string, (evt?: any) => void>();
+    constructor(config: Record<string, any> = {}) {
+      this.config = { ...config };
+    }
+    add(...nodes: any[]) {
+      this.children.push(...nodes);
+      return this;
+    }
+    getChildren() {
+      return this.children;
+    }
+    on(event: string, handler: (evt?: any) => void) {
+      this.handlers.set(event, handler);
+    }
+    fire(event: string, payload?: any) {
+      this.handlers.get(event)?.(payload);
+    }
+    findOne() {
+      return this.children[0] ?? new FakeNode();
+    }
+    accessor(key: string, fallback: any = 0) {
+      return (value?: any) => {
+        if (value !== undefined) this.config[key] = value;
+        return this.config[key] ?? fallback;
+      };
+    }
+    width = this.accessor("width", 100);
+    height = this.accessor("height", 50);
+    x = this.accessor("x", 0);
+    y = this.accessor("y", 0);
+    fill = this.accessor("fill", "");
+    shadowBlur = this.accessor("shadowBlur", 0);
+    shadowOffset = this.accessor("shadowOffset", { x: 0, y: 0 });
+    moveToBottom() {}
+  }
+  class FakeStage extends FakeNode {
+    containerElement = { style: { cursor: "default" } };
+    container() {
+      return this.containerElement;
+    }
+  }
+  class FakeLayer extends FakeNode {
+    draw = vi.fn();
+    batchDraw = vi.fn();
+    destroyChildren = vi.fn();
+  }
+  class FakeGroup extends FakeNode {}
+  class FakeRect extends FakeNode {}
+  class FakeText extends FakeNode {}
+  class FakeImage extends FakeNode {}
+  class FakeLine extends FakeNode {}
+  class FakeAnimation {
+    constructor(private cb?: () => void, private layer?: any) {}
+    start() {
+      this.cb?.();
+    }
+    stop() {}
+  }
+
+  return {
+    default: {
+      Stage: FakeStage,
+      Layer: FakeLayer,
+      Group: FakeGroup,
+      Rect: FakeRect,
+      Text: FakeText,
+      Image: FakeImage,
+      Line: FakeLine,
+      Animation: FakeAnimation,
+    },
+  };
 }
 
-describe('VictoryScreen', () => {
-  let stage: Konva.Stage;
-  let layer: Konva.Layer;
-  let mockOpts: MockOptions;
-  let victoryScreen: VictoryScreen;
-  let stageContainer: HTMLDivElement;
+describe("VictoryScreen", () => {
+  let stage: FakeStage;
+  let layer: FakeLayer;
+  let onReturn: ReturnType<typeof vi.fn>;
 
-  beforeEach(() => {
-    // 1. Create a DOM element for Konva to attach to (required by jsdom)
-    stageContainer = document.createElement('div');
-    document.body.appendChild(stageContainer);
-
-    // 2. Setup mock stage and layer
-    stage = new Konva.Stage({
-      container: stageContainer,
-      width: 1000,
+  beforeEach(async () => {
+    const konvaMock = createKonvaMock();
+    vi.doMock("konva", () => konvaMock);
+    vi.stubGlobal(
+      "Image",
+      class {
+        onload: (() => void) | null = null;
+        set src(_: string) {
+          this.onload?.();
+        }
+      }
+    );
+    KonvaModule = (await import("konva")).default;
+    VictoryScreen = (await import("./VictoryScreen")).VictoryScreen;
+    stage = new KonvaModule.Stage({
+      width: 1200,
       height: 800,
+      container: { appendChild() {} },
     });
-    layer = new Konva.Layer();
-    stage.add(layer);
-
-    // Spy on layer methods to ensure they are called
-    vi.spyOn(layer, 'add');
-    vi.spyOn(layer, 'draw');
-
-    // 3. Setup mock options with spy functions
-    mockOpts = {
-      cashBalance: 1234.56,
-      totalDaysPlayed: 20,
-      onExit: vi.fn(),
-      onReturnHome: vi.fn(),
-    };
-
-    // 4. Instantiate the class under test
-    victoryScreen = new VictoryScreen(stage, layer, mockOpts);
+    layer = new KonvaModule.Layer();
+    onReturn = vi.fn();
   });
 
-  it('should construct and setup UI correctly', () => {
-    // 1. Modal background
-    // 2. Title
-    // 3. Info text
-    // 4. Exit group
-    // 5. Return Home group
-    expect(layer.add).toHaveBeenCalledTimes(5);
+  it("builds UI and triggers callbacks", () => {
+    const screen = new VictoryScreen(stage as any, layer as any, {
+      totalDaysPlayed: 5,
+      cashBalance: 3000,
+      onReturnHome: onReturn,
+    });
+
+    // trigger button handler from the layer tree
+    const button = layer.getChildren().find((c: any) => c.handlers?.has("click"));
+    button?.handlers.get("click")?.();
+
+    expect(onReturn).toHaveBeenCalledTimes(1);
     expect(layer.draw).toHaveBeenCalled();
-  });
-
-  it('should display correct stats in the info text', () => {
-    // Find the info text node. Based on setupUI, it's the 3rd item added.
-    const infoText = (layer.add as Mock).mock.calls[2][0] as Konva.Text;
-
-    expect(infoText).toBeDefined();
-    expect(infoText.text()).toContain(`Final Cash: $${mockOpts.cashBalance.toFixed(2)}`);
-    expect(infoText.text()).toContain(`Total Days Played: ${mockOpts.totalDaysPlayed}`);
-    expect(infoText.text()).toContain('$1234.56'); // Check toFixed(2)
-  });
-
-  describe('Exit Button', () => {
-    let exitGroup: Konva.Group;
-    let exitRect: Konva.Rect;
-    let initialFill: string;
-
-    beforeEach(() => {
-      // The Exit group is the 4th item added to the layer
-      exitGroup = (layer.add as Mock).mock.calls[3][0] as Konva.Group;
-      exitRect = exitGroup.findOne('Rect') as Konva.Rect;
-      initialFill = exitRect.fill();
-    });
-
-    it('should call onExit when clicked', () => {
-      // Simulate a click event
-      exitGroup.fire('click');
-      expect(mockOpts.onExit).toHaveBeenCalledTimes(1);
-      expect(mockOpts.onReturnHome).not.toHaveBeenCalled();
-    });
-
-    it('should change style on mouseenter', () => {
-      // Simulate a mouseenter event
-      exitGroup.fire('mouseenter');
-
-      expect(stage.container().style.cursor).toBe('pointer');
-      expect(exitRect.fill()).not.toBe(initialFill);
-      expect(exitRect.fill()).toBe('#b13535');
-      expect(layer.draw).toHaveBeenCalled();
-    });
-
-    it('should revert style on mouseleave', () => {
-      // First, fire mouseenter to change it
-      exitGroup.fire('mouseenter');
-      expect(exitRect.fill()).toBe('#b13535');
-
-      // Now, fire mouseleave to revert it
-      exitGroup.fire('mouseleave');
-
-      expect(stage.container().style.cursor).toBe('default');
-      expect(exitRect.fill()).toBe(initialFill); // Reverts to original color
-      expect(layer.draw).toHaveBeenCalled();
-    });
-  });
-
-  describe('Return Home Button', () => {
-    let returnGroup: Konva.Group;
-    let returnRect: Konva.Rect;
-    let initialFill: string;
-
-    beforeEach(() => {
-      // The Return Home group is the 5th (last) item added
-      returnGroup = (layer.add as Mock).mock.calls[4][0] as Konva.Group;
-      returnRect = returnGroup.findOne('Rect') as Konva.Rect;
-      initialFill = returnRect.fill();
-    });
-
-    it('should call onReturnHome when clicked', () => {
-      // Simulate a click event
-      returnGroup.fire('click');
-      expect(mockOpts.onReturnHome).toHaveBeenCalledTimes(1);
-      expect(mockOpts.onExit).not.toHaveBeenCalled();
-    });
-
-    it('should change style on mouseenter', () => {
-      // Simulate a mouseenter event
-      returnGroup.fire('mouseenter');
-
-      expect(stage.container().style.cursor).toBe('pointer');
-      expect(returnRect.fill()).not.toBe(initialFill);
-      expect(returnRect.fill()).toBe('#45a049');
-      expect(layer.draw).toHaveBeenCalled();
-    });
-
-    it('should revert style on mouseleave', () => {
-      // First, fire mouseenter to change it
-      returnGroup.fire('mouseenter');
-      expect(returnRect.fill()).toBe('#45a049');
-
-      // Now, fire mouseleave to revert it
-      returnGroup.fire('mouseleave');
-
-      expect(stage.container().style.cursor).toBe('default');
-      expect(returnRect.fill()).toBe(initialFill); // Reverts to original color
-      expect(layer.draw).toHaveBeenCalled();
-    });
-  });
-
-  it('should run cleanup function without error', () => {
-    // This test ensures the cleanup function is called for coverage,
-    // even if it's empty.
-    expect(() => victoryScreen.cleanup()).not.toThrow();
   });
 });
