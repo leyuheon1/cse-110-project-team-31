@@ -5,6 +5,12 @@ import { ExitButton } from './ui/ExitButton';
 import { InfoButton } from './ui/InfoButton';
 import { ShuffleButton } from './ui/ShuffleButton';
 
+interface Mistake {
+    question: string;
+    userAnswer: string;
+    correctAnswer: number;
+}
+
 export class CleaningMinigame {
     private layer: Konva.Layer;
     private stage: Konva.Stage;
@@ -16,8 +22,12 @@ export class CleaningMinigame {
     private correctAnswers: number = 0;
     private totalProblems: number = 0;
 
+    // --- NEW: Track mistakes ---
+    private mistakes: Mistake[] = [];
+
     private minigameUIGroup: Konva.Group;
     private choiceUIGroup: Konva.Group;
+    private resultsUIGroup: Konva.Group | null = null;
     
     private timerText!: Konva.Text;
     private problemText!: Konva.Text;
@@ -296,10 +306,9 @@ export class CleaningMinigame {
         });
         this.minigameUIGroup.add(this.inputText);
 
-        // 5. Timer
         this.timerText = new Konva.Text({
             x: 0,
-            y: inputBoxY + inputBoxHeight + 20, 
+            y: inputBoxY + inputBoxHeight + 15, 
             width: stageWidth,
             text: `Time: ${this.timeRemaining}s`,
             fontSize: Math.min(stageWidth * 0.024, 28),
@@ -309,7 +318,6 @@ export class CleaningMinigame {
         });
         this.minigameUIGroup.add(this.timerText);
 
-        // 6. Feedback
         this.feedbackText = new Konva.Text({
             x: 0,
             y: inputBoxY + inputBoxHeight + 60, 
@@ -345,7 +353,6 @@ export class CleaningMinigame {
             'Solve multiplication problems to clean dishes! \n\nType your answer and press ENTER. \n\nClean 5 dishes to satisfy your customers!'
         );
 
-        // Shuffle button
         this.shuffleButton = new ShuffleButton(
             this.stage,
             this.layer,
@@ -361,11 +368,7 @@ export class CleaningMinigame {
     private shuffleProblem(): void {
         this.userInput = '';
         this.updateInputDisplay();
-        
-        if (this.feedbackText) {
-            this.feedbackText.text('');
-        }
-        
+        this.feedbackText.text('');
         this.generateNewProblem();
         this.layer.draw();
     }
@@ -429,6 +432,12 @@ export class CleaningMinigame {
             }
         } else {
             this.showFeedback('Still Dirty! ✗', '#e74c3c');
+            // --- TRACK MISTAKE ---
+            this.mistakes.push({
+                question: this.currentProblem.question,
+                userAnswer: this.userInput,
+                correctAnswer: this.currentProblem.answer
+            });
         }
 
         this.updateScore();
@@ -475,14 +484,120 @@ export class CleaningMinigame {
         }, 1000);
     }
 
-    private endMinigame(skipped: boolean = false): void {
-        if (this.timerInterval !== null) {
-            clearInterval(this.timerInterval);
-            this.timerInterval = null;
+    // --- NEW: Results Popup ---
+    private showResultsPopup(): void {
+        const stageWidth = this.stage.width();
+        const stageHeight = this.stage.height();
+
+        this.resultsUIGroup = new Konva.Group();
+        
+        const overlay = new Konva.Rect({
+            width: stageWidth, height: stageHeight, fill: 'black', opacity: 0.5
+        });
+        const boxWidth = Math.min(600, stageWidth * 0.9);
+        const boxHeight = Math.min(500, stageHeight * 0.8);
+        const box = new Konva.Rect({
+            x: (stageWidth - boxWidth) / 2, y: (stageHeight - boxHeight) / 2,
+            width: boxWidth, height: boxHeight,
+            fill: 'white', cornerRadius: 15, stroke: '#333', strokeWidth: 2
+        });
+
+        this.resultsUIGroup.add(overlay, box);
+
+        const title = this.dishesCleaned >= this.totalDishesToClean ? "ALL DONE!" : "TIME'S UP!";
+        const titleColor = this.dishesCleaned >= this.totalDishesToClean ? 'green' : '#E67E22';
+
+        const headerText = new Konva.Text({
+            x: box.x(), y: box.y() + 20, width: boxWidth,
+            text: title,
+            fontSize: 30, fontFamily: 'Press Start 2P', fill: titleColor, align: 'center'
+        });
+        this.resultsUIGroup.add(headerText);
+
+        const scoreText = new Konva.Text({
+            x: box.x(), y: headerText.y() + 50, width: boxWidth,
+            text: `Dishes Cleaned: ${this.dishesCleaned}/${this.totalDishesToClean}`,
+            fontSize: 20, fontFamily: 'Press Start 2P', fill: '#333', align: 'center'
+        });
+        this.resultsUIGroup.add(scoreText);
+
+        let contentY = scoreText.y() + 50;
+        
+        if (this.mistakes.length === 0) {
+            const perfectText = new Konva.Text({
+                x: box.x(), y: contentY + 20, width: boxWidth,
+                text: "No errors. Great job!",
+                fontSize: 18, fill: 'green', align: 'center', fontFamily: 'Arial'
+            });
+            this.resultsUIGroup.add(perfectText);
+        } else {
+            const listHeader = new Konva.Text({
+                x: box.x() + 30, y: contentY,
+                text: "Problems Missed:",
+                fontSize: 18, fontStyle: 'bold', fill: '#c0392b', fontFamily: 'Arial'
+            });
+            this.resultsUIGroup.add(listHeader);
+            contentY += 30;
+
+            this.mistakes.slice(0, 5).forEach(m => {
+                const line = `${m.question} = ${m.correctAnswer} (You: ${m.userAnswer})`;
+                const item = new Konva.Text({
+                    x: box.x() + 30, y: contentY,
+                    text: line, fontSize: 16, fill: '#333', fontFamily: 'Arial'
+                });
+                this.resultsUIGroup.add(item);
+                contentY += 25;
+            });
+
+            if (this.mistakes.length > 5) {
+                const more = new Konva.Text({
+                    x: box.x() + 30, y: contentY,
+                    text: `...and ${this.mistakes.length - 5} more.`,
+                    fontSize: 14, fill: '#7f8c8d', fontFamily: 'Arial'
+                });
+                this.resultsUIGroup.add(more);
+            }
         }
 
-        window.removeEventListener('keydown', this.keyboardHandler);
+        const btnWidth = 150;
+        const btnHeight = 50;
+        const btnGroup = new Konva.Group({
+            x: box.x() + (boxWidth - btnWidth) / 2,
+            y: box.y() + boxHeight - 80
+        });
+        const btnRect = new Konva.Rect({
+            width: btnWidth, height: btnHeight, fill: '#4CAF50', cornerRadius: 5
+        });
+        const btnText = new Konva.Text({
+            width: btnWidth, height: btnHeight,
+            text: "CONTINUE", fontSize: 16, fill: 'white', fontFamily: 'Press Start 2P',
+            align: 'center', verticalAlign: 'middle'
+        });
+        btnGroup.add(btnRect, btnText);
 
+        btnGroup.on('click', () => {
+            this.resultsUIGroup?.destroy();
+            this.finishEndGame(false);
+        });
+        
+        btnGroup.on('mouseenter', () => {
+            this.stage.container().style.cursor = 'pointer';
+            btnRect.fill('#45a049');
+            this.layer.draw();
+        });
+        btnGroup.on('mouseleave', () => {
+            this.stage.container().style.cursor = 'default';
+            btnRect.fill('#4CAF50');
+            this.layer.draw();
+        });
+
+        this.resultsUIGroup.add(btnGroup);
+        this.layer.add(this.resultsUIGroup);
+        this.resultsUIGroup.moveToTop();
+        this.layer.draw();
+    }
+
+    private finishEndGame(skipped: boolean): void {
         let finalReportedAnswers = this.correctAnswers;
         
         // If they finished successfully without skipping, report total capacity restored
@@ -496,10 +611,22 @@ export class CleaningMinigame {
             timeRemaining: skipped ? this.timeRemaining : 0
         };
 
-        const delay = skipped ? 100 : 500;
-        setTimeout(() => {
-            if (this.onComplete) this.onComplete(result, skipped); 
-        }, delay);
+        this.onComplete(result, skipped);
+    }
+
+    private endMinigame(skipped: boolean = false): void {
+        if (this.timerInterval !== null) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+
+        window.removeEventListener('keydown', this.keyboardHandler);
+
+        if (skipped) {
+            this.finishEndGame(true);
+        } else {
+            this.showResultsPopup();
+        }
     }
 
     public cleanup(): void {
@@ -510,5 +637,6 @@ export class CleaningMinigame {
         window.removeEventListener('keydown', this.keyboardHandler);
         this.minigameUIGroup.destroy();
         this.choiceUIGroup.destroy();
+        if (this.resultsUIGroup) this.resultsUIGroup.destroy();
     }
 }

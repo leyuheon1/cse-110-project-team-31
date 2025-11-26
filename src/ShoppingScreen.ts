@@ -34,12 +34,14 @@ export class ShoppingScreen {
   private resizeHandler: () => void;
   private animationFrameId: number | null = null;
   private currentRenderId: number = 0;
+  
+  private priceTagImageObj: HTMLImageElement | null = null; 
 
-  // Order: Flour -> Butter -> Sugar -> Chocolate -> Soda
+  // --- UPDATED ORDER: Flour, Butter, Sugar, Chocolate, Baking Soda ---
   private ingredients: IngredientItem[] = [
     { name: "Flour", price: 0.5, inputValue: "0", unit: "cup" },
-    { name: "Butter", price: 0.25, inputValue: "0", unit: "tbsp" }, 
-    { name: "Sugar", price: 0.75, inputValue: "0", unit: "cup" },   
+    { name: "Butter", price: 0.25, inputValue: "0", unit: "tbsp" }, // Moved up (Index 1)
+    { name: "Sugar", price: 0.75, inputValue: "0", unit: "cup" },   // Moved down (Index 2)
     { name: "Chocolate", price: 3, inputValue: "0", unit: "cup" },
     { name: "Baking Soda", price: 0.5, inputValue: "0", unit: "tsp" },
   ];
@@ -74,7 +76,6 @@ export class ShoppingScreen {
     this.keyboardHandler = this.handleKeyPress.bind(this);
     this.resizeHandler = this.handleResize.bind(this);
 
-    // Restore saved values if provided
     if(savedInputValues){
       this.ingredients.forEach(ingredient => {
         const savedValue = savedInputValues.get(ingredient.name);
@@ -99,7 +100,7 @@ export class ShoppingScreen {
     });
   }
 
-  // --- UI SETUP & IMAGE LOADING ---
+  // ... (Rest of the class methods remain exactly the same) ...
 
   private setupUI(): void {
     this.currentRenderId++;
@@ -109,7 +110,6 @@ export class ShoppingScreen {
     const stageWidth = this.stage.width();
     const stageHeight = this.stage.height();
 
-    // 1. Load Background Image
     const backgroundImage = new Image();
     backgroundImage.src = "./Shopping.png";
     backgroundImage.onload = () => {
@@ -126,7 +126,6 @@ export class ShoppingScreen {
       background.moveToBottom();
       this.layer.draw();
 
-      // 2. Load Price Tag Image after background loads
       this.loadPriceTagImage(() => {
         if (this.currentRenderId !== myRenderId) return;
         this.drawDynamicUI();
@@ -166,16 +165,12 @@ export class ShoppingScreen {
     this.layer.add(nameText);
   }
 
-  // --- DYNAMIC UI RENDERING ---
-
   private drawDynamicUI(): void {
     const stageWidth = this.stage.width();
     const stageHeight = this.stage.height();
 
-    // --- Current Funds Group ---
     this.createBalanceGroup(stageWidth, stageHeight);
 
-    // --- Ingredients Setup ---
     const itemXPercentages = [0.22, 0.363, 0.5, 0.637, 0.77]; 
     const inputY = stageHeight * 0.68;
     const nameY = stageHeight * 0.65;
@@ -184,7 +179,6 @@ export class ShoppingScreen {
         if (index >= itemXPercentages.length) return;
 
         const center_X = stageWidth * itemXPercentages[index];
-
         this.createIngredientNameText(stageWidth, nameY, ingredient.name, center_X);
         this.createPriceTagGroup(stageWidth, stageHeight, ingredient, center_X); 
         this.createIngredientRow(stageWidth, inputY, ingredient, center_X);
@@ -192,20 +186,16 @@ export class ShoppingScreen {
     
     this.updateTotalCost();
 
-    // --- Buttons ---
     this.createViewRecipeButton(stageWidth, stageHeight); 
     this.createViewOrdersButton(stageWidth, stageHeight);
     this.createPurchaseButton(stageWidth, 0); 
 
-    // --- Exit & Info ---
     new ExitButton(this.stage, this.layer, () => {
       this.cleanup();
       window.location.href = "/login.html";
     });
     new InfoButton(this.stage, this.layer);
   }
-
-  // --- GROUPING & CREATION HELPERS ---
 
   private createBalanceGroup(stageWidth: number, stageHeight: number): void {
     const balanceBoxWidth = stageWidth * 0.25;
@@ -304,9 +294,10 @@ export class ShoppingScreen {
     this.layer.add(priceTagGroup);
   }
 
-  // --- BUTTONS AND INPUTS ---
-
-  private createViewRecipeButton(stageWidth: number, stageHeight: number): void {
+  private createViewRecipeButton(
+    stageWidth: number,
+    stageHeight: number
+  ): void {
     const buttonWidth = stageWidth * 0.12; 
     const buttonHeight = stageWidth * 0.03; 
     const footerY = stageHeight * 0.75;
@@ -331,7 +322,7 @@ export class ShoppingScreen {
         fontSize: Math.min(stageWidth * 0.01, 12),
         fill: "white",
         align: "center",
-        verticalAlign: "middle",
+        verticalAlign: 'middle',
         fontFamily: "Press Start 2P",
         fontStyle: "bold",
     });
@@ -386,7 +377,7 @@ export class ShoppingScreen {
         fontSize: Math.min(stageWidth * 0.01, 12),
         fill: "white",
         align: "center",
-        verticalAlign: "middle",
+        verticalAlign: 'middle',
         fontFamily: "Press Start 2P",
         fontStyle: "bold",
     });
@@ -420,7 +411,6 @@ export class ShoppingScreen {
 
     const modalLayer = new Konva.Layer();
     
-    // Background overlay
     const overlay = new Konva.Rect({
         x: 0,
         y: 0,
@@ -431,7 +421,6 @@ export class ShoppingScreen {
     overlay.on('click', () => modalLayer.destroy());
     modalLayer.add(overlay);
 
-    // Receipt logic
     const imageObj = new Image();
     imageObj.onload = () => {
         const aspectRatio = imageObj.width / imageObj.height;

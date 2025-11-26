@@ -1,5 +1,6 @@
     Owl receives a new order list showing how many cookies each customer wants to buy.
     Your goal is to figure out how much of each ingredient you'll need to bake the correct number of cookies.
+    Earn $1000 to help Owl and win the game!
 
 Tips for Success:
     - Read the order list carfully, every number matters!

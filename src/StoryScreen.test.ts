@@ -67,15 +67,31 @@ vi.mock("konva", () => {
 
   class FakeText extends FakeNode<{ text?: string }> {
     private currentText = "";
+    private listeningState = true;
 
     text(value: string) {
       this.currentText = value;
+    }
+
+    listening(value?: boolean) {
+      if (typeof value === "boolean") {
+        this.listeningState = value;
+      }
+      return this.listeningState;
     }
   }
 
   class FakeTag extends FakeNode {
     shadowBlur = vi.fn();
     shadowOffset = vi.fn();
+    private currentFill = "";
+
+    fill(value?: string) {
+      if (typeof value === "string") {
+        this.currentFill = value;
+      }
+      return this.currentFill;
+    }
   }
 
   class FakeLabel extends FakeNode {

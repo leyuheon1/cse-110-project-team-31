@@ -1,6 +1,7 @@
 import Konva from 'konva';
 import { ExitButton } from './ui/ExitButton';
 import { InfoButton } from './ui/InfoButton';
+import { SavingsTracker } from './ui/SavingsTracker';
 
 export class DaySummaryScreen {
     private layer: Konva.Layer;
@@ -15,6 +16,9 @@ export class DaySummaryScreen {
     // 1. Add active flag to prevent ghost resizes
     private isActive: boolean = true;
     private resizeHandler: (() => void) | null = null;
+  
+    private dayTips: number; // <-- ADDED THIS
+    private savingsTracker!: SavingsTracker;
 
     constructor(
         stage: Konva.Stage,
@@ -286,6 +290,19 @@ export class DaySummaryScreen {
         });
 
         this.layer.add(buttonGroup);
+        //Exit Button
+        const exitButton = new ExitButton(this.stage, this.layer, () => {
+            this.cleanup();
+            window.location.href = '/login.html'; //go to login page
+        });
+
+        //Info Button
+        const infoButton = new InfoButton(this.stage, this.layer);
+        
+        // Add savings tracker
+        this.savingsTracker = new SavingsTracker(this.layer, this.stage);
+        this.savingsTracker.update(this.currentFunds);
+
         this.layer.draw();
     }
 

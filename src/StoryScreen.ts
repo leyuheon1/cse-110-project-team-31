@@ -1,4 +1,5 @@
 import Konva from "konva";
+import { ConfigManager } from "./config"; // Import ConfigManager
 
 export class StoryScreen {
   private stage: Konva.Stage;
@@ -75,9 +76,14 @@ export class StoryScreen {
     const textFontFamily = "Press Start 2P"; 
     const textFontStyle = "bold";
     const username = localStorage.getItem("username");
-    const fullText = `Today is a sad day for Owl. He lost his job. Owl is thinking of making cookies from his new home, the trailer park. ${username}, please help Owl get back on his feet by baking some cookies.`;
 
-    // Button Logic
+    // --- DYNAMIC WIN THRESHOLD ---
+    const config = ConfigManager.getInstance().getConfig();
+    const winAmount = config.winThreshold;
+
+    const fullText = `Today is a sad day for Owl. He lost his job, and now lives in a small trailer park. Owl dreams of buying a cozy little house, but he needs $${winAmount} to make it happen. ${username}, please help Owl get back on his feet by baking some cookies!`;
+
+    // Button 
     const buttonWidth = Math.min(stageWidth * 0.45, 250);
     const buttonHeight = Math.min(stageHeight * 0.08, 150);
     const buttonX = (stageWidth - buttonWidth) / 2;

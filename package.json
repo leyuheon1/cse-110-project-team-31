@@ -27,6 +27,7 @@
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.8",
     "canvas": "^3.2.0",
+    "cross-env": "^7.0.3",
     "jsdom": "^27.1.0",
     "typescript": "^5.9.3",
     "vite": "^7.1.12",

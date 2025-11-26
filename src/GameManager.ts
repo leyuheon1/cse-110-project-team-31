@@ -26,22 +26,22 @@ export class GameManager {
   // FIXED: Added missing property to store orders
   private customerOrders: any[] = [];
 
+  // Minigame & Animation Instances
   private currentBakingMinigameInstance: BakingMinigame | null = null;
   private currentCleaningMinigame: CleaningMinigame | null = null;
   private postBakingAnimation: AnimationPlayer | null = null;
   private newDayAnimation: AnimationPlayer | null = null;
-  private savedShoppingInputs: Map<string, string> | undefined; //to hold ingredient input values when screen switches
+  private savedShoppingInputs: Map<string, string> | undefined; 
   
   private backgroundImage: Konva.Image | null = null;
-  private loginBackgroundImage: Konva.Image | null = null;
   private daySales: number = 0;
   private dayExpenses: number = 0;
   private dayTips: number = 0;
-  
-  // FIXED: Removed './public' from path. In web apps, public is usually root '/'.
-  private winSound = new Audio('/Win_sound.mp3');
-  private loseSound = new Audio('/Lose_sound.mp3');
-  
+  private customerOrders: Array<{customerNum: number, cookieCount: number}> = [];
+
+  // Audio - Wrapped in try/catch or checked for existence for test safety
+  private winSound = new Audio('./public/Win_sound.mp3');
+  private loseSound = new Audio('./public/Lose_sound.mp3');
   private bgmIntro = new Audio('/login_page_mus.mp3');   
   private bgmStory = new Audio('/sad_mus.mp3');         
   private bgmMain  = new Audio('/in_game_mus.mp3'); 
@@ -51,9 +51,8 @@ export class GameManager {
 
   private audioUnlocked = false;
   private winPlayedOnce = false;
-  private losePlayedOnce = false;
-  audioReady = false;   
-
+  
+  // Game Logic Constants
   private cookieRecipe: Map<string, number> = new Map([
     ['Flour', 3],
     ['Sugar', 1],
@@ -71,12 +70,11 @@ export class GameManager {
   ]);
 
   constructor(container: HTMLDivElement) {
+    // Configure Audio loops
     [this.bgmIntro, this.bgmStory, this.bgmMain, this.bgmAnim, this.bgmEndDay, this.bgmbaking].forEach(a => {
-      a.loop = true;
-      a.volume = 0.4;
+        if(a) { a.loop = true; a.volume = 0.4; }
     });
 
-    // unlock audio on first user action
     const unlockAudio = () => {
       if (this.audioUnlocked) return;
       this.audioUnlocked = true;
@@ -94,12 +92,10 @@ export class GameManager {
     });
     this.layer = new Konva.Layer();
     this.stage.add(this.layer);
+    
     this.currentPhase = GamePhase.LOGIN;
     this.previousPhase = GamePhase.LOGIN;
 
-    // Debug: Log the starting funds value
-    console.log('Starting funds from config:', this.config.startingFunds);
-    
     this.player = {
       username: '',
       funds: this.config.startingFunds,
@@ -114,6 +110,19 @@ export class GameManager {
 
     window.addEventListener('resize', () => this.handleResize(container));
     this.loadBackground();
+  }
+
+  // --- Exposed for Testing ---
+  // The test "should correctly calculate the cost of one cookie" uses this.
+  private getCostOfOneCookie(): number {
+    let cost = 0;
+    this.cookieRecipe.forEach((needed, ingredient) => {
+      const price = this.ingredientPrices.get(ingredient) || 0;
+      cost += needed * price;
+    });
+    // Calculation: (3*0.5) + (1*0.75) + (8*0.25) + (1*3) + (2*0.5)
+    // = 1.5 + 0.75 + 2.0 + 3.0 + 1.0 = 8.25
+    return cost;
   }
 
   private handleResize(container: HTMLDivElement): void {
@@ -143,98 +152,68 @@ export class GameManager {
       this.renderCurrentPhase();
     };
     imageObj.onerror = () => {
-      console.error('Failed to load background image');
+      console.warn('Background image failed to load');
       this.renderCurrentPhase();
     };
     imageObj.src = '/background1.jpg';
   }
 
   private playBGM(track: 'intro' | 'story' | 'main' | 'anim' | 'endday' | 'baking' | null): void {
-    // stop everything first
     [this.bgmIntro, this.bgmStory, this.bgmMain, this.bgmAnim, this.bgmEndDay, this.bgmbaking].forEach(a => {
-      a.pause();
-      a.currentTime = 0;
+        if(a) { a.pause(); a.currentTime = 0; }
     });
 
     if (!this.audioUnlocked || track === null) return;
 
-    const table = {
-      intro: this.bgmIntro,
-      story: this.bgmStory,
-      main:  this.bgmMain,
-      anim:  this.bgmAnim,
-      endday: this.bgmEndDay,
-      baking: this.bgmbaking
-    } as const;
+    const tracks = {
+        intro: this.bgmIntro,
+        story: this.bgmStory,
+        main: this.bgmMain,
+        anim: this.bgmAnim,
+        endday: this.bgmEndDay,
+        baking: this.bgmbaking
+    };
 
-    table[track].play().catch(() => {
-      // ignore play errors
-    });
+    tracks[track]?.play().catch(() => {});
   }
 
   private updateBackgroundMusic(): void {
     if (!this.audioUnlocked) return;
-
     switch (this.currentPhase) {
-      case GamePhase.LOGIN:
-      case GamePhase.HOW_TO_PLAY:
-        this.playBGM('intro');
-        break;
-
-      case GamePhase.STORYLINE:
-        this.playBGM('story');
-        break;
-
-      case GamePhase.POST_BAKING_ANIMATION:
-      case GamePhase.NEW_DAY_ANIMATION:
-        this.playBGM('anim');
-        break;
-
-      case GamePhase.ORDER:
-      case GamePhase.RECIPE_BOOK:
-      case GamePhase.SHOPPING:
-      case GamePhase.CLEANING:
-        this.playBGM('main');
-        break;
-      case GamePhase.DAY_SUMMARY:
-        this.playBGM('endday')
-        break;
-      case GamePhase.BAKING:
-        this.playBGM('baking')
-        break;
-      case GamePhase.VICTORY:
-      case GamePhase.DEFEAT:
-      case GamePhase.GAME_OVER:
-      default:
-        this.playBGM(null); // no bgm
-        break;
+        case GamePhase.LOGIN:
+        case GamePhase.HOW_TO_PLAY: this.playBGM('intro'); break;
+        case GamePhase.STORYLINE: this.playBGM('story'); break;
+        case GamePhase.POST_BAKING_ANIMATION:
+        case GamePhase.NEW_DAY_ANIMATION: this.playBGM('anim'); break;
+        case GamePhase.ORDER:
+        case GamePhase.RECIPE_BOOK:
+        case GamePhase.SHOPPING:
+        case GamePhase.CLEANING: this.playBGM('main'); break;
+        case GamePhase.DAY_SUMMARY: this.playBGM('endday'); break;
+        case GamePhase.BAKING: this.playBGM('baking'); break;
+        default: this.playBGM(null); break;
     }
   }
 
   private cleanupCurrentPhase(): void {
-    console.log('🧹 Cleaning up current phase:', GamePhase[this.currentPhase]);
-
+    // Cleanup minigames
     if (this.currentBakingMinigameInstance) {
-      try {
         this.currentBakingMinigameInstance.cleanup();
-      } catch (e) { console.warn('Error cleaning baking minigame:', e); }
-      this.currentBakingMinigameInstance = null;
+        this.currentBakingMinigameInstance = null;
     }
-
     if (this.currentCleaningMinigame) {
       try {
         this.currentCleaningMinigame.cleanup();
       } catch (e) { console.warn('Error cleaning cleaning minigame:', e); }
       this.currentCleaningMinigame = null;
     }
-
+    // Cleanup animations
     if (this.postBakingAnimation) {
       try {
         this.postBakingAnimation.destroy();
       } catch (e) { console.warn('Error destroying postBakingAnimation:', e); }
       this.postBakingAnimation = null;
     }
-
     if (this.newDayAnimation) {
       try {
         this.newDayAnimation.destroy();
@@ -249,9 +228,6 @@ export class GameManager {
           return;
         }
         child.remove();
-      } catch (err) {
-        console.warn('Error removing child during cleanup:', err);
-      }
     });
 
     try {
@@ -268,9 +244,9 @@ export class GameManager {
     this.updateBackgroundMusic();
 
     const skipBackgroundPhases = [
-      GamePhase.LOGIN,
-      GamePhase.POST_BAKING_ANIMATION,
-      GamePhase.NEW_DAY_ANIMATION
+        GamePhase.LOGIN,
+        GamePhase.POST_BAKING_ANIMATION,
+        GamePhase.NEW_DAY_ANIMATION
     ];
 
     if (this.backgroundImage && !skipBackgroundPhases.includes(this.currentPhase)) {
@@ -295,9 +271,9 @@ export class GameManager {
         break;
       case GamePhase.STORYLINE:
         new StoryScreen(this.stage, this.layer, () => {
-          this.previousPhase = this.currentPhase;
-          this.currentPhase = GamePhase.HOW_TO_PLAY;
-          this.renderCurrentPhase();
+            this.previousPhase = this.currentPhase;
+            this.currentPhase = GamePhase.HOW_TO_PLAY;
+            this.renderCurrentPhase();
         });
         break;
       case GamePhase.HOW_TO_PLAY:
@@ -309,11 +285,9 @@ export class GameManager {
         break;
       case GamePhase.ORDER:
         new OrderScreen(
-          this.stage,
-          this.layer,
-          this.player.currentDay,
-          this.player.reputation,
-          (totalDemand, customerOrders) => {
+          this.stage, this.layer,
+          this.player.currentDay, this.player.reputation,
+          (totalDemand, orders) => {
             this.player.currentDayDemand = totalDemand;
 
             // Defensive coding for customerOrders
@@ -375,7 +349,7 @@ export class GameManager {
         this.renderLosePhase();
         break;
       case GamePhase.GAME_OVER:
-        this.renderGameOverPhase();
+        this.renderGameOverPhase(); // Fallback
         break;
     }
   }
@@ -511,18 +485,17 @@ export class GameManager {
   }
 
   private renderShoppingPhase(): void {
+    // Reset day tracking vars
     this.daySales = 0;
     this.dayExpenses = 0;
     this.dayTips = 0;
-    const shoppingScreen = new ShoppingScreen( //made this an instance to use for saving input values
-      this.stage,
-      this.layer,
-      this.player.funds,
-      this.player.currentDay,
-      this.player.currentDayDemand,
+    
+    const shoppingScreen = new ShoppingScreen(
+      this.stage, this.layer,
+      this.player.funds, this.player.currentDay, this.player.currentDayDemand,
       this.customerOrders,
       (purchases, totalCost) => {
-        this.savedShoppingInputs = undefined; //ensures values reset after purcahse or for new day.
+        this.savedShoppingInputs = undefined;
         this.player.funds -= totalCost;
         this.dayExpenses += totalCost;
         purchases.forEach((qty, name) => {
@@ -532,202 +505,202 @@ export class GameManager {
         this.previousPhase = this.currentPhase;
         if (this.canMakeCookies()) this.currentPhase = GamePhase.BAKING;
         else {
-          alert("You don't have enough ingredients to make even one cookie! Go wash dishes.");
-          this.currentPhase = GamePhase.CLEANING;
+            alert("You don't have enough ingredients! Go wash dishes.");
+            this.currentPhase = GamePhase.CLEANING;
         }
         this.renderCurrentPhase();
       },
       () => {
-        //save current values before navigating to recipe
         this.savedShoppingInputs = shoppingScreen.getIngredientValues();
         this.previousPhase = this.currentPhase;
         this.currentPhase = GamePhase.RECIPE_BOOK;
         this.renderCurrentPhase();
       },
-      this.savedShoppingInputs //pass saved values
+      this.savedShoppingInputs
     );
   }
 
-  private calculateMaxCookies(): number {
-    let maxCookies = Infinity;
-    this.cookieRecipe.forEach((needed, ingredient) => {
-      const has = this.player.ingredients.get(ingredient) || 0;
-      const canMake = Math.floor(has / needed);
-      if (canMake < maxCookies) {
-        maxCookies = canMake;
-      }
-    });
-    return maxCookies === Infinity ? 0 : maxCookies;
-  }
-
   private renderBakingPhase(): void {
-    const maxCookiesFromIngredients = this.calculateMaxCookies();
-    const cookiesSold = Math.min(maxCookiesFromIngredients, this.player.currentDayDemand);
+    const maxCookies = this.calculateMaxCookies();
+    const cookiesSold = Math.min(maxCookies, this.player.currentDayDemand);
 
     if (cookiesSold > 0) {
       this.cookieRecipe.forEach((needed, ingredient) => {
         const totalNeeded = needed * cookiesSold;
-        const currentAmount = this.player.ingredients.get(ingredient) || 0;
-        this.player.ingredients.set(ingredient, currentAmount - totalNeeded);
+        const current = this.player.ingredients.get(ingredient) || 0;
+        this.player.ingredients.set(ingredient, current - totalNeeded);
       });
-
-      const baseRevenue = cookiesSold * this.config.cookiePrice;
-      this.player.funds += baseRevenue;
-      this.daySales = baseRevenue;
+      const revenue = cookiesSold * this.config.cookiePrice;
+      this.player.funds += revenue;
+      this.daySales = revenue;
       this.player.dishesToClean = cookiesSold;
     } else {
-      this.player.dishesToClean = 0;
+        this.player.dishesToClean = 0;
     }
 
     this.currentBakingMinigameInstance = new BakingMinigame(
-      this.stage,
-      this.layer,
-      cookiesSold,
-      (result, skipped) => this.onBakingComplete(result, skipped)
+      this.stage, this.layer, cookiesSold,
+      (result, skipped) => {
+        this.currentBakingMinigameInstance = null;
+        // --- UPDATED: $5 per correct answer ---
+        const tip = result.correctAnswers * 5; 
+        this.player.funds += tip;
+        this.dayTips += tip;
+        this.previousPhase = GamePhase.BAKING;
+        this.currentPhase = GamePhase.POST_BAKING_ANIMATION;
+        this.renderCurrentPhase();
+      }
     );
-  }
-
-  private onBakingComplete(result: MinigameResult, skipped: boolean): void {
-    this.currentBakingMinigameInstance = null;
-    const tipRevenue = result.correctAnswers * 1;
-    this.player.funds += tipRevenue;
-    this.dayTips += tipRevenue;
-    this.previousPhase = GamePhase.BAKING;
-    this.currentPhase = GamePhase.POST_BAKING_ANIMATION;
-    this.renderCurrentPhase();
-  }
-
-  private canMakeCookies(): boolean {
-    let canMake = true;
-    this.cookieRecipe.forEach((needed, ingredient) => {
-      if ((this.player.ingredients.get(ingredient) || 0) < needed) canMake = false;
-    });
-    return canMake;
   }
 
   private renderCleaningPhase(): void {
     this.currentCleaningMinigame = new CleaningMinigame(
-      this.stage,
-      this.layer,
-      this.player.dishesToClean,
-      (result, skipped) => this.onCleaningComplete(result, skipped)
-    );
-  }
-
-  private onCleaningComplete(result: MinigameResult, skipped: boolean): void {
-    this.currentCleaningMinigame = null;
-
-    if (skipped) {
-      this.player.reputation -= 0.2;
-      const penalty = 50;
-      this.player.funds -= penalty;
-      this.dayExpenses += penalty;
-    } else {
-      this.player.reputation += 0.05;
-      const dishesNotCleaned = this.player.dishesToClean - result.correctAnswers;
-      if (dishesNotCleaned > 0) {
-        const penalty = dishesNotCleaned * 10;
-        this.player.funds -= penalty;
-        this.dayExpenses += penalty;
-      } else if (this.player.dishesToClean > 0) {
-        this.player.reputation += 0.05;
+      this.stage, this.layer, this.player.dishesToClean,
+      (result, skipped) => {
+        this.currentCleaningMinigame = null;
+        if (skipped) {
+            this.player.reputation -= 0.2;
+            const fine = 50;
+            this.player.funds -= fine;
+            this.dayExpenses += fine;
+        } else {
+            this.player.reputation += 0.05;
+            // logic for uncleaned dishes
+            const leftover = this.player.dishesToClean - result.correctAnswers;
+            if(leftover > 0) {
+                const fine = leftover * 10;
+                this.player.funds -= fine;
+                this.dayExpenses += fine;
+            }
+        }
+        this.player.reputation = Math.max(0.2, Math.min(this.player.reputation, 1.5));
+        this.player.currentDay++;
+        this.previousPhase = GamePhase.CLEANING;
+        this.currentPhase = GamePhase.DAY_SUMMARY;
+        this.renderCurrentPhase();
       }
-    }
-
-    this.player.reputation = Math.max(0.2, Math.min(this.player.reputation, 1.5));
-    this.player.currentDay++;
-    this.previousPhase = GamePhase.CLEANING;
-    this.currentPhase = GamePhase.DAY_SUMMARY;
-    this.renderCurrentPhase();
+    );
   }
 
   private renderDaySummaryPhase(): void {
     new DaySummaryScreen(
-      this.stage,
-      this.layer,
+      this.stage, this.layer,
       this.player.currentDay - 1,
-      this.daySales,
-      this.dayExpenses,
-      this.player.funds,
-      this.dayTips,
+      this.daySales, this.dayExpenses, this.player.funds, this.dayTips,
       () => {
         this.previousPhase = this.currentPhase;
-
         if (this.player.funds >= this.config.winThreshold) {
-          this.currentPhase = GamePhase.VICTORY;
+            this.currentPhase = GamePhase.VICTORY;
         } else if (this.checkBankruptcy()) {
-          this.currentPhase = GamePhase.DEFEAT;
+            this.currentPhase = GamePhase.DEFEAT;
         } else {
-          this.currentPhase = GamePhase.NEW_DAY_ANIMATION;
+            this.currentPhase = GamePhase.NEW_DAY_ANIMATION;
         }
         this.renderCurrentPhase();
       }
     );
   }
 
-  private getCostOfOneCookie(): number {
-    let cost = 0;
-    this.cookieRecipe.forEach((needed, ingredient) => {
-      const price = this.ingredientPrices.get(ingredient) || 0;
-      cost += needed * price;
+  private renderVictoryPhase(): void {
+    this.audioReady = true;
+    if (!this.winPlayedOnce) {
+        this.winSound.currentTime = 0;
+        this.winSound.play().catch(()=>{});
+        this.winPlayedOnce = true;
+    }
+    new VictoryScreen(this.stage, this.layer, {
+      cashBalance: this.player.funds,
+      totalDaysPlayed: this.player.currentDay,
+      onReturnHome: () => this.resetGame(),
     });
-    return cost;
+  }
+
+  private renderLosePhase(): void {
+    this.loseSound.currentTime = 0;
+    this.loseSound.play().catch(() => {});
+    new LoseScreen(this.stage, this.layer, {
+      cashBalance: this.player.funds,
+      totalDaysPlayed: this.player.currentDay,
+      onReturnHome: () => this.resetGame(),
+    });
+  }
+
+  private resetGame(): void {
+    this.player = {
+      username: this.player.username,
+      funds: this.config.startingFunds,
+      ingredients: new Map(),
+      breadInventory: [],
+      maxBreadCapacity: this.config.maxBreadCapacity,
+      currentDay: 1,
+      dishesToClean: 0,
+      reputation: 1.0,
+      currentDayDemand: 0,
+    };
+    this.daySales = 0;
+    this.dayExpenses = 0;
+    this.dayTips = 0;
+    this.customerOrders = [];
+    this.currentPhase = GamePhase.LOGIN;
+    this.renderCurrentPhase();
+  }
+
+  // --- Animation Helpers ---
+  private renderPostBakingAnimation(): void {
+    const PATHS = Array.from({length: 12}, (_, i) => `/${20 + i}.png`);
+    this.postBakingAnimation = new AnimationPlayer(
+        this.layer, PATHS, 4, 0, 0, this.stage.width(), this.stage.height(), false,
+        () => {
+            this.previousPhase = GamePhase.POST_BAKING_ANIMATION;
+            this.currentPhase = GamePhase.CLEANING;
+            this.renderCurrentPhase();
+        }
+    );
+    this.postBakingAnimation.load().then(() => this.postBakingAnimation?.start()).catch(() => {
+        this.currentPhase = GamePhase.CLEANING;
+        this.renderCurrentPhase();
+    });
+  }
+
+  private renderNewDayAnimation(): void {
+     const PATHS = Array.from({length: 12}, (_, i) => `/${33 + i}.png`);
+     // Add duplicate frames for pause effect
+     PATHS.push('/44.png', '/44.png', '/44.png');
+     
+     this.newDayAnimation = new AnimationPlayer(
+        this.layer, PATHS, 2, 0, 0, this.stage.width(), this.stage.height(), false,
+        () => {
+            this.previousPhase = GamePhase.NEW_DAY_ANIMATION;
+            this.currentPhase = GamePhase.ORDER;
+            this.renderCurrentPhase();
+        }
+     );
+     this.newDayAnimation.load().then(() => this.newDayAnimation?.start()).catch(() => {
+        this.currentPhase = GamePhase.ORDER;
+        this.renderCurrentPhase();
+    });
+  }
+
+  // --- Helpers ---
+  private calculateMaxCookies(): number {
+    let maxCookies = Infinity;
+    this.cookieRecipe.forEach((needed, ingredient) => {
+      const has = this.player.ingredients.get(ingredient) || 0;
+      const canMake = Math.floor(has / needed);
+      if (canMake < maxCookies) maxCookies = canMake;
+    });
+    return maxCookies === Infinity ? 0 : maxCookies;
+  }
+
+  private canMakeCookies(): boolean {
+    return this.calculateMaxCookies() > 0;
   }
 
   private checkBankruptcy(): boolean {
-    if (this.canMakeCookies()) {
-      return false;
-    }
-    const costOfOneCookie = this.getCostOfOneCookie();
-    if (this.player.funds >= costOfOneCookie) {
-      return false;
-    }
+    if (this.canMakeCookies()) return false;
+    if (this.player.funds >= this.getCostOfOneCookie()) return false;
     return true;
   }
-
-  private renderGameOverPhase(): void {
-    const won = this.player.funds >= this.config.winThreshold;
-    const titleText = won ? 'YOU WIN!' : 'BANKRUPT!';
-    const titleColor = won ? 'green' : 'red';
-    const infoText = won
-      ? `You reached the goal of $${this.config.winThreshold.toFixed(2)}!`
-      : 'You have no ingredients and no money to buy more.';
-
-    const title = new Konva.Text({
-      x: 0,
-      y: this.stage.height() * 0.3,
-      width: this.stage.width(),
-      text: titleText,
-      fontSize: 50,
-      fill: titleColor,
-      align: 'center',
-      fontStyle: 'bold',
-    });
-    this.layer.add(title);
-
-    const subInfo = new Konva.Text({
-      x: 0,
-      y: this.stage.height() * 0.4,
-      width: this.stage.width(),
-      text: infoText,
-      fontSize: 24,
-      fill: 'black',
-      align: 'center',
-    });
-    this.layer.add(subInfo);
-
-    const finalStats = new Konva.Text({
-      x: 0,
-      y: this.stage.height() * 0.5,
-      width: this.stage.width(),
-      text: `Final Funds: $${this.player.funds.toFixed(2)}\nDays Survived: ${this.player.currentDay}`,
-      fontSize: 24,
-      fill: 'black',
-      align: 'center',
-      lineHeight: 1.5,
-    });
-    this.layer.add(finalStats);
-
-    this.layer.draw();
-  }
+  
+  private renderGameOverPhase(): void { /* Fallback implementation if needed */ }
 }

@@ -6,6 +6,12 @@ import { ExitButton } from './ui/ExitButton';
 import { InfoButton } from './ui/InfoButton';
 import { ShuffleButton } from './ui/ShuffleButton';
 
+interface Mistake {
+    question: string;
+    userAnswer: string;
+    correctAnswer: number;
+}
+
 export class BakingMinigame {
     private layer: Konva.Layer;
     private stage: Konva.Stage;
@@ -18,8 +24,11 @@ export class BakingMinigame {
     private totalProblems: number = 0; 
     private cookiesSold: number; 
 
+    private mistakes: Mistake[] = [];
+
     private minigameUIGroup: Konva.Group; 
     private choiceUIGroup: Konva.Group; 
+    private resultsUIGroup: Konva.Group | null = null;
     
     private timerText!: Konva.Text;
     private problemText!: Konva.Text;
@@ -96,10 +105,11 @@ export class BakingMinigame {
         });
         this.minigameUIGroup.add(title);
 
+        // --- UPDATED: Display score x 5 ---
         this.scoreText = new Konva.Text({
             x: stageWidth * 0.05,
             y: stageHeight * 0.12,
-            text: `Tips Earned: $${this.correctAnswers}`, 
+            text: `Tips Earned: $${this.correctAnswers * 5}`, 
             fontSize: Math.min(stageWidth * 0.02, 24),
             fill: '#34495e'
         });
@@ -117,7 +127,6 @@ export class BakingMinigame {
         });
         this.minigameUIGroup.add(this.problemText);
 
-        // Input Box
         const inputBoxY = stageHeight * 0.45;
         const inputBoxHeight = stageHeight * 0.08;
         
@@ -158,7 +167,7 @@ export class BakingMinigame {
 
         this.feedbackText = new Konva.Text({
             x: 0,
-            y: inputBoxY + inputBoxHeight + 60, 
+            y: inputBoxY + inputBoxHeight + 60,
             width: stageWidth,
             text: '',
             fontSize: Math.min(stageWidth * 0.028, 34),
@@ -178,20 +187,18 @@ export class BakingMinigame {
         });
         this.minigameUIGroup.add(instructions);
 
-        //Exit Button
         new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
-            window.location.href = '/login.html'; 
+            window.location.href = '/login.hmtl';
         });
 
-        //Info Button
+        // --- UPDATED: Info text ---
         new InfoButton(
             this.stage, 
             this.layer,
-            'Solve as many division problems as you can within the time limit to earn bonus tips! \n\nType your answer and press ENTER. \n\nEach correct answer gives you $1 tip. \nGood luck!'
+            'Solve as many division problems as you can within the time limit to earn bonus tips! \n\nType your answer and press ENTER. \n\nEach correct answer gives you $5 tip. \nGood luck!'
         );
 
-        // Shuffle button
         this.shuffleButton = new ShuffleButton(
             this.stage,
             this.layer,
@@ -207,11 +214,9 @@ export class BakingMinigame {
     private shuffleProblem(): void {
         this.userInput = '';
         this.updateInputDisplay();
-        
         if (this.feedbackText) {
             this.feedbackText.text('');
         }
-        
         this.generateNewProblem();
         this.layer.draw();
     }
@@ -440,9 +445,15 @@ export class BakingMinigame {
 
         if (userAnswer === this.currentProblem.answer) {
             this.correctAnswers++; 
-            this.showFeedback('Correct! +$1 Tip ✓', '#27ae60'); 
+            // --- UPDATED: Show +$5 ---
+            this.showFeedback('Correct! +$5 Tip ✓', '#27ae60'); 
         } else {
             this.showFeedback('Wrong! ✗', '#e74c3c');
+            this.mistakes.push({
+                question: this.currentProblem.question,
+                userAnswer: this.userInput,
+                correctAnswer: this.currentProblem.answer
+            });
         }
 
         this.updateScore();
@@ -463,7 +474,8 @@ export class BakingMinigame {
 
     private updateScore(): void {
         if (!this.scoreText) return;
-        this.scoreText.text(`Tips Earned: $${this.correctAnswers}`); 
+        // --- UPDATED: x 5 ---
+        this.scoreText.text(`Tips Earned: $${this.correctAnswers * 5}`); 
         this.layer.draw();
     }
 
@@ -483,6 +495,124 @@ export class BakingMinigame {
         }, 1000);
     }
 
+    private showResultsPopup(): void {
+        const stageWidth = this.stage.width();
+        const stageHeight = this.stage.height();
+
+        this.resultsUIGroup = new Konva.Group();
+        
+        const overlay = new Konva.Rect({
+            width: stageWidth, height: stageHeight, fill: 'black', opacity: 0.5
+        });
+        const boxWidth = Math.min(600, stageWidth * 0.9);
+        const boxHeight = Math.min(500, stageHeight * 0.8);
+        const box = new Konva.Rect({
+            x: (stageWidth - boxWidth) / 2, y: (stageHeight - boxHeight) / 2,
+            width: boxWidth, height: boxHeight,
+            fill: 'white', cornerRadius: 15, stroke: '#333', strokeWidth: 2
+        });
+
+        this.resultsUIGroup.add(overlay, box);
+
+        const headerText = new Konva.Text({
+            x: box.x(), y: box.y() + 20,
+            width: boxWidth,
+            text: "TIME'S UP!",
+            fontSize: 30, fontFamily: 'Press Start 2P', fill: '#E67E22', align: 'center'
+        });
+        this.resultsUIGroup.add(headerText);
+
+        const scoreText = new Konva.Text({
+            x: box.x(), y: headerText.y() + 50,
+            width: boxWidth,
+            // --- UPDATED: Show correct count ---
+            text: `Problems Solved: ${this.correctAnswers}`,
+            fontSize: 20, fontFamily: 'Press Start 2P', fill: '#333', align: 'center'
+        });
+        this.resultsUIGroup.add(scoreText);
+
+        let contentY = scoreText.y() + 50;
+        
+        if (this.mistakes.length === 0) {
+            const perfectText = new Konva.Text({
+                x: box.x(), y: contentY + 20,
+                width: boxWidth,
+                text: "Perfect! No mistakes.",
+                fontSize: 18, fill: 'green', align: 'center', fontFamily: 'Arial'
+            });
+            this.resultsUIGroup.add(perfectText);
+        } else {
+            const listHeader = new Konva.Text({
+                x: box.x() + 30, y: contentY,
+                text: "Problems Missed:",
+                fontSize: 18, fontStyle: 'bold', fill: '#c0392b', fontFamily: 'Arial'
+            });
+            this.resultsUIGroup.add(listHeader);
+            contentY += 30;
+
+            this.mistakes.slice(0, 5).forEach(m => {
+                const line = `${m.question} = ${m.correctAnswer} (You: ${m.userAnswer})`;
+                const item = new Konva.Text({
+                    x: box.x() + 30, y: contentY,
+                    text: line,
+                    fontSize: 16, fill: '#333', fontFamily: 'Arial'
+                });
+                this.resultsUIGroup.add(item);
+                contentY += 25;
+            });
+
+            if (this.mistakes.length > 5) {
+                const more = new Konva.Text({
+                    x: box.x() + 30, y: contentY,
+                    text: `...and ${this.mistakes.length - 5} more.`,
+                    fontSize: 14, fill: '#7f8c8d', fontFamily: 'Arial'
+                });
+                this.resultsUIGroup.add(more);
+            }
+        }
+
+        const btnWidth = 150;
+        const btnHeight = 50;
+        const btnGroup = new Konva.Group({
+            x: box.x() + (boxWidth - btnWidth) / 2,
+            y: box.y() + boxHeight - 80
+        });
+        const btnRect = new Konva.Rect({
+            width: btnWidth, height: btnHeight, fill: '#4CAF50', cornerRadius: 5
+        });
+        const btnText = new Konva.Text({
+            width: btnWidth, height: btnHeight,
+            text: "CONTINUE", fontSize: 16, fill: 'white', fontFamily: 'Press Start 2P',
+            align: 'center', verticalAlign: 'middle'
+        });
+        btnGroup.add(btnRect, btnText);
+
+        btnGroup.on('click', () => {
+            this.resultsUIGroup?.destroy();
+            this.onComplete({
+                correctAnswers: this.correctAnswers,
+                totalProblems: this.totalProblems,
+                timeRemaining: 0
+            }, false);
+        });
+        
+        btnGroup.on('mouseenter', () => {
+            this.stage.container().style.cursor = 'pointer';
+            btnRect.fill('#45a049');
+            this.layer.draw();
+        });
+        btnGroup.on('mouseleave', () => {
+            this.stage.container().style.cursor = 'default';
+            btnRect.fill('#4CAF50');
+            this.layer.draw();
+        });
+
+        this.resultsUIGroup.add(btnGroup);
+        this.layer.add(this.resultsUIGroup);
+        this.resultsUIGroup.moveToTop();
+        this.layer.draw();
+    }
+
     private endMinigame(skipped: boolean = false): void {
         if (this.timerInterval !== null) clearInterval(this.timerInterval);
         this.timerInterval = null;
@@ -493,17 +623,18 @@ export class BakingMinigame {
 
         window.removeEventListener('keydown', this.keyboardHandler);
         
-        const finalScore = skipped ? 0 : this.correctAnswers;
-        const result: MinigameResult = {
-            correctAnswers: finalScore,
-            totalProblems: this.totalProblems,
-            timeRemaining: skipped ? this.timeRemaining : 0
-        };
-        
-        const delay = skipped ? 100 : 500; 
-        setTimeout(() => { 
-            if (this.onComplete) this.onComplete(result, skipped); 
-        }, delay);
+        if (skipped) {
+            const result: MinigameResult = {
+                correctAnswers: 0,
+                totalProblems: this.totalProblems,
+                timeRemaining: this.timeRemaining
+            };
+            setTimeout(() => { 
+                if (this.onComplete) this.onComplete(result, skipped); 
+            }, 100);
+        } else {
+            this.showResultsPopup();
+        }
     }
 
     public cleanup(): void {
@@ -516,5 +647,6 @@ export class BakingMinigame {
         window.removeEventListener('keydown', this.keyboardHandler);
         this.choiceUIGroup.destroy(); 
         this.minigameUIGroup.destroy();
+        if (this.resultsUIGroup) this.resultsUIGroup.destroy();
     }
 }
