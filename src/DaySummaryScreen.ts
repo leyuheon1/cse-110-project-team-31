@@ -17,7 +17,6 @@ export class DaySummaryScreen {
     private isActive: boolean = true;
     private resizeHandler: (() => void) | null = null;
   
-    private dayTips: number; // <-- ADDED THIS
     private savingsTracker!: SavingsTracker;
 
     constructor(

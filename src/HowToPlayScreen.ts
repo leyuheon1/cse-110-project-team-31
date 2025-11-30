@@ -7,8 +7,6 @@ export class HowToPlayScreen {
     private onStartGame: () => void;
     private animationFrameId: number | null = null;
     private currentRenderId: number = 0;
-    
-    // FIX 1: Add a flag to track if this screen is still valid
     private isActive: boolean = true; 
 
     constructor(stage: Konva.Stage, layer: Konva.Layer, onStartGame: () => void) {
@@ -16,7 +14,6 @@ export class HowToPlayScreen {
         this.layer = layer;
         this.onStartGame = onStartGame;
         
-        // Bind resize handler
         this.handleResize = this.handleResize.bind(this);
         
         this.setupUI();
@@ -24,7 +21,7 @@ export class HowToPlayScreen {
     }
 
     private handleResize = (): void => {
-        if (!this.isActive) return; // Stop if dead
+        if (!this.isActive) return;
 
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
@@ -38,7 +35,7 @@ export class HowToPlayScreen {
     };
 
     private setupUI(): void {
-        if (!this.isActive) return; // Stop if dead
+        if (!this.isActive) return;
 
         this.currentRenderId++;
         const myRenderId = this.currentRenderId;
@@ -46,7 +43,6 @@ export class HowToPlayScreen {
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
 
-        // Dimensions
         const modalX = stageWidth * 0.1;
         const modalY = stageHeight * 0.125;
         const modalW = stageWidth * 0.8;
@@ -54,7 +50,6 @@ export class HowToPlayScreen {
 
         const modalGroup = new Konva.Group();
 
-        // Paper Background
         const paper = new Konva.Rect({
             x: modalX,
             y: modalY,
@@ -83,17 +78,9 @@ export class HowToPlayScreen {
             opacity: 0.6
         });
 
-        const crease = new Konva.Line({
-            points: [modalX + 16, modalY + modalH * 0.45, modalX + modalW - 16, modalY + modalH * 0.45],
-            stroke: 'rgba(0,0,0,0.08)',
-            strokeWidth: 2,
-            listening: false
-        });
-
-        modalGroup.add(paper, highlight, crease);
+        modalGroup.add(paper, highlight);
         this.layer.add(modalGroup);
 
-        // Title
         const title = new Konva.Text({
             x: modalX,
             y: modalY + 30,
@@ -107,13 +94,10 @@ export class HowToPlayScreen {
         });
         this.layer.add(title);
 
-        // Load instructions
         this.loadInstructions(stageWidth, stageHeight, modalY, modalH, myRenderId);
 
-        // Start button
         this.createStartButton(stageWidth, stageHeight, modalY, modalH);
 
-        // Exit button
         new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
             window.location.href = '/login.html';
@@ -132,13 +116,10 @@ export class HowToPlayScreen {
         try {
             const response = await fetch('/howtoplay.txt');
             
-            // FIX 2: Check active status AFTER await
-            // If user clicked "Start" while fetching, STOP HERE.
             if (!this.isActive || this.currentRenderId !== renderId) return;
 
             let text = await response.text();
 
-            // FIX 3: Check active status AGAIN after reading text
             if (!this.isActive || this.currentRenderId !== renderId) return;
 
             text = text
@@ -176,7 +157,23 @@ export class HowToPlayScreen {
 
                 const mainHeight = mainInstructions.height();
 
-                const tipsHeader = new Konva.Text({
+                const glowLayer1 = new Konva.Text({
+                    x: textBoxX,
+                    y: textBoxY + mainHeight + 5,
+                    width: textBoxWidth,
+                    text: 'TIPS FOR SUCCESS',
+                    fontSize: fontSize + 2,
+                    fontFamily: 'Press Start 2P',
+                    fontStyle: 'bold',
+                    fill: '#FFA500',
+                    align: 'center',
+                    shadowColor: '#FF8C00',
+                    shadowBlur: 25,
+                    shadowOpacity: 0.8,
+                    opacity: 0.6
+                });
+
+                const glowLayer2 = new Konva.Text({
                     x: textBoxX,
                     y: textBoxY + mainHeight + 5,
                     width: textBoxWidth,
@@ -186,9 +183,23 @@ export class HowToPlayScreen {
                     fontStyle: 'bold',
                     fill: '#FFD700',
                     align: 'center',
-                    shadowColor: '#000000',
-                    shadowBlur: 2,
-                    shadowOpacity: 0.5
+                    shadowColor: '#FFA500',
+                    shadowBlur: 15,
+                    shadowOpacity: 0.9
+                });
+
+                const tipsHeader = new Konva.Text({
+                    x: textBoxX,
+                    y: textBoxY + mainHeight + 5,
+                    width: textBoxWidth,
+                    text: 'TIPS FOR SUCCESS',
+                    fontSize: fontSize + 2,
+                    fontFamily: 'Press Start 2P',
+                    fontStyle: 'bold',
+                    fill: '#FFEB3B',
+                    align: 'center',
+                    stroke: '#FF8C00',
+                    strokeWidth: 1
                 });
 
                 const tipsContent = new Konva.Text({
@@ -206,6 +217,8 @@ export class HowToPlayScreen {
                 });
 
                 this.layer.add(mainInstructions);
+                this.layer.add(glowLayer1);
+                this.layer.add(glowLayer2);
                 this.layer.add(tipsHeader);
                 this.layer.add(tipsContent);
             } else {
@@ -225,7 +238,6 @@ export class HowToPlayScreen {
                 this.layer.add(instructions);
             }
 
-            // Only draw if we are still alive
             if (this.isActive) {
                 this.layer.draw();
             }
@@ -269,8 +281,8 @@ export class HowToPlayScreen {
         buttonGroup.add(text);
 
         buttonGroup.on('click', () => {
-            this.cleanup(); // Clean up myself
-            this.onStartGame(); // Notify parent to switch screens
+            this.cleanup();
+            this.onStartGame();
         });
 
         buttonGroup.on('mouseenter', () => {
@@ -288,7 +300,6 @@ export class HowToPlayScreen {
     }
 
     public cleanup(): void {
-        // FIX 4: Set Active to false immediately
         this.isActive = false;
 
         if (this.animationFrameId) {
@@ -296,8 +307,6 @@ export class HowToPlayScreen {
         }
         window.removeEventListener('resize', this.handleResize);
         
-        // Optional: Destroy specifically this screen's children 
-        // (usually the next screen clears the layer, but this is safer)
         this.layer.destroyChildren(); 
     }
 }

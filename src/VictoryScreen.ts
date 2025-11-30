@@ -56,6 +56,19 @@ export class VictoryScreen {
     };
     imageObj.src = "/victory-background.png";
 
+    const victoryMessage = new Konva.Text({
+      x: 0,
+      y: stageHeight * 0.35,
+      width: stageWidth,
+      text: "Owl made it out of the trailer park!",
+      fontSize: Math.min(stageWidth * 0.03, 16),
+      fontStyle: "bold",
+      fill: "#4CAF50",
+      align: "center",
+      fontFamily: '"Press Start 2P", cursive',
+    });
+    this.layer.add(victoryMessage);
+
     const infoText = new Konva.Text({
       x: 0,
       y: stageHeight * 0.4,
@@ -116,15 +129,6 @@ export class VictoryScreen {
     returnGroup.on("mouseenter", () => {
       this.stage.container().style.cursor = "pointer";
       returnRect.fill("#E69900");
-      returnRect.scale({ x: 1.05, y: 1.05 });
-
-      const offsetX = (buttonWidth * 0.05) / 2;
-      const offsetY = (buttonHeight * 0.05) / 2;
-      returnRect.x(-offsetX);
-      returnRect.y(-offsetY);
-      returnText.x(-offsetX);
-      returnText.y(-offsetY);
-
       this.layer.draw();
     });
 

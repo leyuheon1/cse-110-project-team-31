@@ -243,30 +243,30 @@ export class CleaningMinigame {
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
 
-        // 1. Title
         const title = new Konva.Text({
             x: 0,
             y: stageHeight * 0.05,
             width: stageWidth,
             text: 'Cleaning Minigame - Solve Problems to Clean!', 
-            fontSize: Math.min(stageWidth * 0.028, 34),
+            fontSize: Math.min(stageWidth * 0.025, 24),
             fill: '#2c3e50',
             fontStyle: 'bold',
+            fontFamily: 'Press Start 2P',
             align: 'center'
         });
         this.minigameUIGroup.add(title);
 
-        // 2. Score (Dishes)
         this.scoreText = new Konva.Text({
-            x: stageWidth * 0.05,
+            x: stageWidth * 0.43,
             y: stageHeight * 0.12,
             text: `Dishes Cleaned: ${this.dishesCleaned} / ${this.totalDishesToClean}`, 
             fontSize: Math.min(stageWidth * 0.02, 24),
-            fill: '#34495e'
+            fontFamily: 'Nunito',
+            fill: '#34495e',
+            align: 'center'
         });
         this.minigameUIGroup.add(this.scoreText);
 
-        // 3. Problem
         this.problemText = new Konva.Text({
             x: 0,
             y: stageHeight * 0.3,
@@ -275,12 +275,12 @@ export class CleaningMinigame {
             fontSize: Math.min(stageWidth * 0.048, 58),
             fill: '#2c3e50',
             fontStyle: 'bold',
+            fontFamily: 'Nunito',
             align: 'center'
         });
         this.minigameUIGroup.add(this.problemText);
 
-        // 4. Input Box
-        const inputBoxY = stageHeight * 0.45;
+        const inputBoxY = stageHeight * 0.4;
         const inputBoxHeight = stageHeight * 0.08;
         
         const inputBox = new Konva.Rect({
@@ -314,6 +314,7 @@ export class CleaningMinigame {
             fontSize: Math.min(stageWidth * 0.024, 28),
             fill: '#27ae60',
             fontStyle: 'bold',
+            fontFamily: 'Nunito',
             align: 'center'
         });
         this.minigameUIGroup.add(this.timerText);
@@ -324,12 +325,12 @@ export class CleaningMinigame {
             width: stageWidth,
             text: '',
             fontSize: Math.min(stageWidth * 0.028, 34),
+            fontFamily: 'Nunito',
             fill: '#27ae60',
             align: 'center'
         });
         this.minigameUIGroup.add(this.feedbackText);
 
-        // 7. Instructions
         const instructions = new Konva.Text({
             x: 0,
             y: stageHeight * 0.75,
@@ -337,11 +338,11 @@ export class CleaningMinigame {
             text: 'Type your answer and press ENTER',
             fontSize: Math.min(stageWidth * 0.018, 22),
             fill: '#7f8c8d',
-            align: 'center'
+            align: 'center',
+            fontFamily: 'Nunito'
         });
         this.minigameUIGroup.add(instructions);
 
-        // Buttons
         new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
             window.location.href = '/login.html'; 
@@ -484,7 +485,6 @@ export class CleaningMinigame {
         }, 1000);
     }
 
-    // --- NEW: Results Popup ---
     private showResultsPopup(): void {
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
@@ -527,33 +527,36 @@ export class CleaningMinigame {
             const perfectText = new Konva.Text({
                 x: box.x(), y: contentY + 20, width: boxWidth,
                 text: "No errors. Great job!",
-                fontSize: 18, fill: 'green', align: 'center', fontFamily: 'Arial'
+                fontSize: 18, fill: 'green', align: 'center', fontFamily: 'Nunito'
             });
             this.resultsUIGroup.add(perfectText);
         } else {
             const listHeader = new Konva.Text({
-                x: box.x() + 30, y: contentY,
+                x: box.x(), y: contentY,
+                width: boxWidth,
                 text: "Problems Missed:",
-                fontSize: 18, fontStyle: 'bold', fill: '#c0392b', fontFamily: 'Arial'
+                fontSize: 18, fontStyle: 'bold', fill: '#c0392b', fontFamily: 'Nunito', align: 'center'
             });
             this.resultsUIGroup.add(listHeader);
             contentY += 30;
 
             this.mistakes.slice(0, 5).forEach(m => {
-                const line = `${m.question} = ${m.correctAnswer} (You: ${m.userAnswer})`;
+                const line = `${m.question} = ${m.correctAnswer} (Your answer: ${m.userAnswer})`;
                 const item = new Konva.Text({
-                    x: box.x() + 30, y: contentY,
-                    text: line, fontSize: 16, fill: '#333', fontFamily: 'Arial'
+                    x: box.x(), y: contentY,
+                    width: boxWidth,
+                    text: line, fontSize: 16, fill: '#333', align: 'center', fontFamily: 'Nunito'
                 });
-                this.resultsUIGroup.add(item);
+                this.resultsUIGroup!.add(item);
                 contentY += 25;
             });
 
             if (this.mistakes.length > 5) {
                 const more = new Konva.Text({
-                    x: box.x() + 30, y: contentY,
+                    x: box.x(), y: contentY,
+                    width: boxWidth,
                     text: `...and ${this.mistakes.length - 5} more.`,
-                    fontSize: 14, fill: '#7f8c8d', fontFamily: 'Arial'
+                    fontSize: 14, fill: '#7f8c8d', fontFamily: 'Nunito', align: 'center'
                 });
                 this.resultsUIGroup.add(more);
             }

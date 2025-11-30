@@ -19,13 +19,11 @@ export class LoseScreen {
   }
 
   private setupUI(): void {
-    // 1) CLEAR THE LAYER
     this.layer.destroyChildren();
 
     const stageWidth = this.stage.width();
     const stageHeight = this.stage.height();
 
-    // 2) Background Image
     const imageObj = new Image();
     imageObj.onload = () => {
       const bg = new Konva.Image({
@@ -43,7 +41,19 @@ export class LoseScreen {
     };
     imageObj.src = "/lose-background.png";
 
-    // 3) Stats Text
+    const loseMessage = new Konva.Text({
+      x: 0,
+      y: stageHeight * 0.35,
+      width: stageWidth,
+      text: "Owl needs to make more cookies.",
+      fontSize: Math.min(stageWidth * 0.03, 16),
+      fontStyle: "bold",
+      fill: "#9d3231ff",
+      align: "center",
+      fontFamily: '"Press Start 2P", cursive',
+    });
+    this.layer.add(loseMessage);
+
     const infoText = new Konva.Text({
       x: 0,
       y: stageHeight * 0.4,
@@ -60,7 +70,6 @@ export class LoseScreen {
     });
     this.layer.add(infoText);
 
-    // 4) Return to Login Button
     const buttonWidth = Math.min(stageWidth * 0.4, 250);
     const buttonHeight = Math.min(stageHeight * 0.08, 80);
 
@@ -90,28 +99,25 @@ export class LoseScreen {
       align: "center",
       verticalAlign: "middle",
       lineHeight: 1.4,
-      listening: false // Optimization: let clicks pass through text to the rect/group
+      listening: false
     });
 
     returnGroup.add(returnRect);
     returnGroup.add(returnText);
 
-    // Interaction Logic
     returnGroup.on("click tap", () => {
       this.opts.onReturnHome();
     });
 
-    // FIXED: Removed scaling logic, kept color change
     returnGroup.on("mouseenter", () => {
       this.stage.container().style.cursor = "pointer";
-      returnRect.fill("#E69900"); // Darker orange
+      returnRect.fill("#E69900"); 
       this.layer.draw();
     });
 
-    // FIXED: Removed scaling reset logic
     returnGroup.on("mouseleave", () => {
       this.stage.container().style.cursor = "default";
-      returnRect.fill("#FFAA00"); // Original orange
+      returnRect.fill("#FFAA00"); 
       this.layer.draw();
     });
 

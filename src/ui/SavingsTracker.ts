@@ -104,7 +104,7 @@ export class SavingsTracker {
 
         //load cookie image and add bounce animation
         const img = new window.Image();
-        img.src = "/public/cookie.png";
+        img.src = "/cookie.png";
         img.onload = () => {
             this.cookieIcon.image(img);
             this.layer.batchDraw();
@@ -163,7 +163,7 @@ export class SavingsTracker {
         this.cookieIcon.x(cookieX);
 
         //update current funds in text label
-        this.labelText.text(`Savings: $${currentFunds} / $${this.savingsGoal}`);
+        this.labelText.text(`Savings: $${currentFunds.toFixed(2)} / $${this.savingsGoal}`);
 
         this.layer.batchDraw();
     }
