@@ -11,6 +11,8 @@ export class StoryScreen {
   private animationFrameId: number | null = null;
   private typingInterval: number | null = null;
   private currentRenderId: number = 0;
+  private rainAnimation: Konva.Animation | null = null;
+  private raindrops: Konva.Line[] = [];
 
   constructor(stage: Konva.Stage, layer: Konva.Layer, onComplete: () => void) {
     this.stage = stage;
@@ -121,6 +123,11 @@ export class StoryScreen {
         image: image,
       });
       this.layer.add(bg);
+
+      // ---------------------------
+      // Add rain animation
+      // ---------------------------
+      this.createRain(stageWidth, stageHeight);
 
       // ---------------------------
       // Add box
@@ -248,9 +255,57 @@ export class StoryScreen {
     image.src = bgSrc;
   }
 
+  private createRain(stageWidth: number, stageHeight: number): void {
+    // Clear existing raindrops
+    this.raindrops.forEach(drop => drop.destroy());
+    this.raindrops = [];
+
+    // Create rain particles
+    const numDrops = 100;
+    
+    for (let i = 0; i < numDrops; i++) {
+      const raindrop = new Konva.Line({
+        points: [0, 0, -8, 15], // Gentle left slant
+        stroke: 'rgba(220, 240, 255, 0.8)',
+        strokeWidth: 2,
+        lineCap: 'round',
+        x: Math.random() * (stageWidth + 100) - 50,
+        y: Math.random() * stageHeight,
+      });
+      
+      // Store initial speed for each raindrop
+      (raindrop as any).speed = 3 + Math.random() * 4;
+      
+      this.layer.add(raindrop);
+      this.raindrops.push(raindrop);
+    }
+
+    // Animate rain
+    if (this.rainAnimation) this.rainAnimation.stop();
+    
+    this.rainAnimation = new Konva.Animation(() => {
+      this.raindrops.forEach((drop) => {
+        const speed = (drop as any).speed;
+        drop.y(drop.y() + speed);
+        drop.x(drop.x() - speed * 0.3); // Horizontal movement to the left
+        
+        // Reset to top when it goes off screen
+        if (drop.y() > stageHeight || drop.x() < -50) {
+          drop.y(-20);
+          drop.x(Math.random() * (stageWidth + 100) - 50);
+        }
+      });
+    }, this.layer);
+    
+    this.rainAnimation.start();
+  }
+
   public cleanup() {
     if (this.typingInterval) clearInterval(this.typingInterval);
     if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+    if (this.rainAnimation) this.rainAnimation.stop();
+    this.raindrops.forEach(drop => drop.destroy());
+    this.raindrops = [];
     window.removeEventListener('resize', this.resizeHandler);
   }
 }
