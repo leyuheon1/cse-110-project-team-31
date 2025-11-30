@@ -58,6 +58,7 @@ export class ShuffleButton {
             fontSize: 14,
             fill: '#16a085',
             fontStyle: 'bold',
+            fontFamily: 'Nunito',
             align: 'center',
             width: 70,
         });

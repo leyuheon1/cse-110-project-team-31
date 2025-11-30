@@ -98,20 +98,22 @@ export class BakingMinigame {
             y: stageHeight * 0.05,
             width: stageWidth,
             text: 'Baking Minigame - Solve Problems for Tips!', 
-            fontSize: Math.min(stageWidth * 0.028, 34),
+            fontSize: Math.min(stageWidth * 0.025, 24),
             fill: '#2c3e50',
             fontStyle: 'bold',
+            fontFamily: 'Press Start 2P',
             align: 'center'
         });
         this.minigameUIGroup.add(title);
 
-        // --- UPDATED: Display score x 5 ---
         this.scoreText = new Konva.Text({
-            x: stageWidth * 0.05,
+            x: stageWidth * 0.43,
             y: stageHeight * 0.12,
             text: `Tips Earned: $${this.correctAnswers * 5}`, 
             fontSize: Math.min(stageWidth * 0.02, 24),
-            fill: '#34495e'
+            fill: '#34495e',
+            align: 'center',
+            fontFamily: 'Nunito'
         });
         this.minigameUIGroup.add(this.scoreText);
 
@@ -123,7 +125,8 @@ export class BakingMinigame {
             fontSize: Math.min(stageWidth * 0.048, 58),
             fill: '#2c3e50',
             fontStyle: 'bold',
-            align: 'center'
+            align: 'center',
+            fontFamily: 'Nunito'
         });
         this.minigameUIGroup.add(this.problemText);
 
@@ -161,7 +164,8 @@ export class BakingMinigame {
             fontSize: Math.min(stageWidth * 0.024, 28),
             fill: '#27ae60',
             fontStyle: 'bold',
-            align: 'center'
+            align: 'center',
+            fontFamily: 'Nunito'
         });
         this.minigameUIGroup.add(this.timerText);
 
@@ -171,6 +175,7 @@ export class BakingMinigame {
             width: stageWidth,
             text: '',
             fontSize: Math.min(stageWidth * 0.028, 34),
+            fontFamily: 'Nunito',
             fill: '#27ae60',
             align: 'center'
         });
@@ -183,7 +188,8 @@ export class BakingMinigame {
             text: 'Type your answer and press ENTER',
             fontSize: Math.min(stageWidth * 0.018, 22),
             fill: '#7f8c8d',
-            align: 'center'
+            align: 'center',
+            fontFamily: 'Nunito'
         });
         this.minigameUIGroup.add(instructions);
 
@@ -231,8 +237,6 @@ export class BakingMinigame {
 
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
-
-        // --- FIX 1: Removed Dark Overlay (Background remains visible/clear) ---
 
         const modalWidth = stageWidth * 0.7;
         const modalHeight = stageHeight * 0.7;
@@ -543,9 +547,10 @@ export class BakingMinigame {
             this.resultsUIGroup.add(perfectText);
         } else {
             const listHeader = new Konva.Text({
-                x: box.x() + 30, y: contentY,
+                x: box.x(), y: contentY,
+                width: boxWidth,
                 text: "Problems Missed:",
-                fontSize: 18, fontStyle: 'bold', fill: '#c0392b', fontFamily: 'Nunito'
+                fontSize: 18, fontStyle: 'bold', fill: '#c0392b', fontFamily: 'Nunito', align: 'center'
             });
             this.resultsUIGroup.add(listHeader);
             contentY += 30;
@@ -553,7 +558,8 @@ export class BakingMinigame {
             this.mistakes.slice(0, 5).forEach(m => {
                 const line = `${m.question} = ${m.correctAnswer} (Your answer: ${m.userAnswer})`;
                 const item = new Konva.Text({
-                    x: box.x() + 30, y: contentY,
+                    x: box.x(), y: contentY,
+                    width: boxWidth,
                     text: line,
                     fontSize: 16, fill: '#333', align: 'center', fontFamily: 'Nunito'
             });
@@ -563,9 +569,10 @@ export class BakingMinigame {
 
             if (this.mistakes.length > 5) {
                 const more = new Konva.Text({
-                    x: box.x() + 30, y: contentY,
+                    x: box.x(), y: contentY,
+                    width: boxWidth,
                     text: `...and ${this.mistakes.length - 5} more.`,
-                    fontSize: 14, fill: '#7f8c8d', fontFamily: 'Nunito'
+                    fontSize: 14, fill: '#7f8c8d', fontFamily: 'Nunito', align: 'center'
                 });
                 this.resultsUIGroup.add(more);
             }

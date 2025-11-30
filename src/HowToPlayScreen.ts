@@ -78,14 +78,7 @@ export class HowToPlayScreen {
             opacity: 0.6
         });
 
-        const crease = new Konva.Line({
-            points: [modalX + 16, modalY + modalH * 0.45, modalX + modalW - 16, modalY + modalH * 0.45],
-            stroke: 'rgba(0,0,0,0.08)',
-            strokeWidth: 2,
-            listening: false
-        });
-
-        modalGroup.add(paper, highlight, crease);
+        modalGroup.add(paper, highlight);
         this.layer.add(modalGroup);
 
         const title = new Konva.Text({

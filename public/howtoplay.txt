@@ -3,8 +3,8 @@ Your goal is to figure out how much of each ingredient you'll need to bake the c
 Earn $1000 to help Owl and win the game!
 
 Tips for Success:
-    - Read the order list carefully, every number of orders matter!
-    - Calculate the total ingredients needed before you start buying your ingredients.
+    1. Read the order list carefully, every number of orders matter!
+    2. Calculate the total ingredients needed before you start buying your ingredients.
 
 NOTE: For the best experience, play in full screen mode so you can clearly see the full gameplay.
 

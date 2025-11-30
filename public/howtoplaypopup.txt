@@ -3,7 +3,7 @@
     Earn $1000 to help Owl and win the game!
 
 Tips for Success:
-    - Read the order list carfully, every number matters!
-    - Calculate the total ingredients needed before you start buying your ingredients.
+    1. Read the order list carfully, every number matters!
+    2. Calculate the total ingredients needed before you start buying your ingredients.
 
 Note: For the best experience, play in full screen mode so you can clearly see the full gameplay.
