@@ -5,7 +5,6 @@ export class ShuffleButton {
     private shuffleCountText: Konva.Text;
     private buttonCircle: Konva.Circle;
     private shufflesRemaining: number = 3;
-    private readonly MAX_SHUFFLES = 3;
 
     constructor(
         private stage: Konva.Stage,
@@ -37,10 +36,9 @@ export class ShuffleButton {
             shadowColor: 'black',
             shadowBlur: 6,
             shadowOpacity: 0.3,
-            shadowOffset: { x: 2, y: 2 },
         });
 
-        // Shuffle icon (using ⇄ symbol)
+        // Shuffle icon 
         const shuffleIcon = new Konva.Text({
             text: '⇄',
             fontSize: buttonRadius * 1.2,
@@ -52,7 +50,7 @@ export class ShuffleButton {
         shuffleIcon.offsetX(shuffleIcon.width() / 2.15);
         shuffleIcon.offsetY(shuffleIcon.height() / 2.05);
 
-        // Shuffle count text (below the button, centered)
+        // Shuffle count text 
         this.shuffleCountText = new Konva.Text({
             x: buttonX - 35,
             y: buttonY + buttonRadius * 2 + 3,
@@ -86,7 +84,7 @@ export class ShuffleButton {
         });
 
         // Click handler - shuffle to new problem
-        this.buttonGroup.on('click tap', () => {
+        this.buttonGroup.on('click', () => {
             if (this.shufflesRemaining > 0) {
                 this.handleShuffle();
             }
@@ -94,10 +92,10 @@ export class ShuffleButton {
     }
 
     private handleShuffle(): void {
-        // Decrement shuffle count
+        
         this.shufflesRemaining--;
         
-        // Update shuffle count display
+        
         this.shuffleCountText.text(`Shuffles: ${this.shufflesRemaining}`);
         
         // Update button appearance if no shuffles remain

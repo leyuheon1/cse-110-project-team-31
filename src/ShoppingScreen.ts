@@ -35,7 +35,6 @@ export class ShoppingScreen {
   private animationFrameId: number | null = null;
   private currentRenderId: number = 0;
   
-  private priceTagImageObj: HTMLImageElement | null = null; 
 
   // --- UPDATED ORDER: Flour, Butter, Sugar, Chocolate, Baking Soda ---
   private ingredients: IngredientItem[] = [
@@ -46,6 +45,7 @@ export class ShoppingScreen {
     { name: "Baking Soda", price: 0.5, inputValue: "0", unit: "tsp" },
   ];
 
+  
   private inputTexts: Map<string, Konva.Text> = new Map();
   private totalCostText: Konva.Text | null = null;
   private keyboardHandler: (e: KeyboardEvent) => void;
