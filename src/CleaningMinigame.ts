@@ -527,14 +527,14 @@ export class CleaningMinigame {
             const perfectText = new Konva.Text({
                 x: box.x(), y: contentY + 20, width: boxWidth,
                 text: "No errors. Great job!",
-                fontSize: 18, fill: 'green', align: 'center', fontFamily: 'Arial'
+                fontSize: 18, fill: 'green', align: 'center', fontFamily: 'Nunito'
             });
             this.resultsUIGroup.add(perfectText);
         } else {
             const listHeader = new Konva.Text({
                 x: box.x() + 30, y: contentY,
                 text: "Problems Missed:",
-                fontSize: 18, fontStyle: 'bold', fill: '#c0392b', fontFamily: 'Arial'
+                fontSize: 18, fontStyle: 'bold', fill: '#c0392b', fontFamily: 'Nunito'
             });
             this.resultsUIGroup.add(listHeader);
             contentY += 30;
@@ -543,7 +543,7 @@ export class CleaningMinigame {
                 const line = `${m.question} = ${m.correctAnswer} (You: ${m.userAnswer})`;
                 const item = new Konva.Text({
                     x: box.x() + 30, y: contentY,
-                    text: line, fontSize: 16, fill: '#333', fontFamily: 'Arial'
+                    text: line, fontSize: 16, fill: '#333', fontFamily: 'Nunito'
                 });
                 this.resultsUIGroup!.add(item);
                 contentY += 25;
@@ -553,7 +553,7 @@ export class CleaningMinigame {
                 const more = new Konva.Text({
                     x: box.x() + 30, y: contentY,
                     text: `...and ${this.mistakes.length - 5} more.`,
-                    fontSize: 14, fill: '#7f8c8d', fontFamily: 'Arial'
+                    fontSize: 14, fill: '#7f8c8d', fontFamily: 'Nunito'
                 });
                 this.resultsUIGroup.add(more);
             }

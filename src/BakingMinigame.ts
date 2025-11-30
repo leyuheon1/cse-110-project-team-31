@@ -538,14 +538,14 @@ export class BakingMinigame {
                 x: box.x(), y: contentY + 20,
                 width: boxWidth,
                 text: "Perfect! No mistakes.",
-                fontSize: 18, fill: 'green', align: 'center', fontFamily: 'Arial'
+                fontSize: 18, fill: 'green', align: 'center', fontFamily: 'Nunito'
             });
             this.resultsUIGroup.add(perfectText);
         } else {
             const listHeader = new Konva.Text({
                 x: box.x() + 30, y: contentY,
                 text: "Problems Missed:",
-                fontSize: 18, fontStyle: 'bold', fill: '#c0392b', fontFamily: 'Arial'
+                fontSize: 18, fontStyle: 'bold', fill: '#c0392b', fontFamily: 'Nunito'
             });
             this.resultsUIGroup.add(listHeader);
             contentY += 30;
@@ -555,7 +555,7 @@ export class BakingMinigame {
                 const item = new Konva.Text({
                     x: box.x() + 30, y: contentY,
                     text: line,
-                    fontSize: 16, fill: '#333', fontFamily: 'Arial'
+                    fontSize: 16, fill: '#333', fontFamily: 'Nunito'
             });
                 this.resultsUIGroup!.add(item);
                 contentY += 25;
@@ -565,7 +565,7 @@ export class BakingMinigame {
                 const more = new Konva.Text({
                     x: box.x() + 30, y: contentY,
                     text: `...and ${this.mistakes.length - 5} more.`,
-                    fontSize: 14, fill: '#7f8c8d', fontFamily: 'Arial'
+                    fontSize: 14, fill: '#7f8c8d', fontFamily: 'Nunito'
                 });
                 this.resultsUIGroup.add(more);
             }
