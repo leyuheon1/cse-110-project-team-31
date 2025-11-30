@@ -31,6 +31,7 @@ class FakeStage {
 class FakeLayer {
   readonly addedNodes: unknown[] = [];
   readonly draw = vi.fn();
+  readonly batchDraw = vi.fn();
   readonly destroyChildren = vi.fn();
 
   add(node: unknown) {
@@ -148,6 +149,7 @@ vi.mock("konva", () => {
       if (typeof value === "number") this.yVal = value;
       return this.yVal;
     }
+    destroy() {}
   }
 
   return {
@@ -167,6 +169,11 @@ describe("StoryScreen", () => {
   beforeEach(() => {
     createdLabels.length = 0;
     vi.useFakeTimers();
+    (globalThis as any).requestAnimationFrame = (cb: FrameRequestCallback) => {
+      cb(0);
+      return 1;
+    };
+    (globalThis as any).cancelAnimationFrame = vi.fn();
   });
 
   afterEach(() => {
@@ -196,5 +203,47 @@ describe("StoryScreen", () => {
     expect(layer.draw).toHaveBeenCalled();
     expect(onComplete).toHaveBeenCalled();
     expect(stage.container().style.cursor).toBe("default");
+  });
+
+  it("handles resize by rebuilding the scene", () => {
+    const stage = new FakeStage(500, 400);
+    const layer = new FakeLayer();
+    const screen = new StoryScreen(stage as never, layer as never, vi.fn());
+
+    // directly invoke the private resize handler
+    (screen as any).handleResize();
+    vi.runAllTimers();
+
+    expect(layer.destroyChildren).toHaveBeenCalled();
+  });
+
+  it("stops rain animation and listeners on cleanup", () => {
+    const stage = new FakeStage(800, 500);
+    const layer = new FakeLayer();
+    const screen = new StoryScreen(stage as never, layer as never, vi.fn());
+
+    // ensure rain drops created
+    (screen as any).createRain(800, 500);
+    expect(layer.addedNodes.length).toBeGreaterThan(0);
+
+    screen.cleanup();
+    expect(window.removeEventListener).toHaveBeenCalled();
+  });
+
+  it("clears typing interval and old raindrops on resize", () => {
+    const stage = new FakeStage(600, 400);
+    const layer = new FakeLayer();
+    const screen: any = new StoryScreen(stage as never, layer as never, vi.fn());
+
+    screen.typingInterval = 123;
+    const clearSpy = vi.spyOn(globalThis, "clearInterval");
+    screen.handleResize();
+    vi.runAllTimers();
+    expect(clearSpy).toHaveBeenCalled();
+
+    const destroySpy = vi.fn();
+    screen.raindrops = [{ destroy: destroySpy, x: () => 0, y: () => 0 }] as any;
+    screen.createRain(100, 100);
+    expect(destroySpy).toHaveBeenCalled();
   });
 });
