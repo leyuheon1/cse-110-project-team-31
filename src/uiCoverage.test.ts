@@ -202,9 +202,9 @@ describe("UI component coverage", () => {
     buttonGroup.fire("mouseenter");
     expect(stage.container().style.cursor).toBe("pointer");
     buttonGroup.fire("mouseleave");
-    buttonGroup.fire("click tap");
-    buttonGroup.fire("click tap");
-    buttonGroup.fire("click tap");
+    buttonGroup.fire("click");
+    buttonGroup.fire("click");
+    buttonGroup.fire("click");
     expect(shuffle.getShufflesRemaining()).toBe(0);
     expect(buttonCircle.fill()).toBe("#95a5a6");
     expect(onShuffle).toHaveBeenCalledTimes(3);
@@ -260,11 +260,16 @@ describe("UI component coverage", () => {
 
     const button = layer
       .getChildren()
-      .find((c: any) => c.handlers?.has("click"));
+      .find((c: any) =>
+        Array.from(c.handlers?.keys?.() ?? []).some((key) => key.includes("click"))
+      );
+    const clickEvent = Array.from(button?.handlers.keys?.() ?? []).find((key) =>
+      key.includes("click")
+    );
     button?.fire("mouseenter");
     expect(stage.container().style.cursor).toBe("pointer");
     button?.fire("mouseleave");
-    button?.fire("click");
+    button?.fire(clickEvent ?? "click");
     expect(onReturn).toHaveBeenCalledTimes(1);
   });
 
@@ -284,10 +289,15 @@ describe("UI component coverage", () => {
     });
     const button = layer
       .getChildren()
-      .find((c: any) => c.handlers?.has("click"));
+      .find((c: any) =>
+        Array.from(c.handlers?.keys?.() ?? []).some((key) => key.includes("click"))
+      );
+    const clickEvent = Array.from(button?.handlers.keys?.() ?? []).find((key) =>
+      key.includes("click")
+    );
     button?.fire("mouseenter");
     button?.fire("mouseleave");
-    button?.fire("click");
+    button?.fire(clickEvent ?? "click");
     expect(onReturn).toHaveBeenCalledTimes(1);
   });
 

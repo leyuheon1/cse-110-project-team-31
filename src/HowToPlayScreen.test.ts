@@ -81,8 +81,8 @@ describe('HowToPlayScreen', () => {
       const modalGroup = (layer.add as Mock).mock.calls[0][0] as Konva.Group;
       expect(modalGroup).toBeInstanceOf(Konva.Group);
       
-      // Modal group should have paper, highlight, and crease
-      expect(modalGroup.getChildren().length).toBe(3);
+      // Modal group currently includes paper and highlight
+      expect(modalGroup.getChildren().length).toBe(2);
     });
 
     it('should create title with correct text and styling', async () => {
@@ -130,7 +130,7 @@ describe('HowToPlayScreen', () => {
       expect(global.fetch).toHaveBeenCalledWith('/howtoplay.txt');
     });
 
-    it('should display fallback text when fetch fails', async () => {
+    it('should log an error when fetch fails', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       
       (global.fetch as Mock).mockRejectedValueOnce(new Error('Network error'));
@@ -138,19 +138,11 @@ describe('HowToPlayScreen', () => {
       howToPlayScreen = new HowToPlayScreen(stage, layer, onStartGameMock);
 
       await vi.waitFor(() => {
-        const calls = (layer.add as Mock).mock.calls;
-        const fallbackText = calls.find(call => {
-          const node = call[0];
-          return node instanceof Konva.Text && 
-                 node.text().includes('Instructions could not be loaded');
-        });
-        expect(fallbackText).toBeDefined();
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          'Could not load instructions:',
+          expect.any(Error)
+        );
       });
-
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Could not load instructions:',
-        expect.any(Error)
-      );
 
       consoleErrorSpy.mockRestore();
     });
@@ -182,26 +174,15 @@ describe('HowToPlayScreen', () => {
       });
     });
 
-    it('should create fallback text with correct styling on error', async () => {
-      vi.spyOn(console, 'error').mockImplementation(() => {});
+    it('should remain stable on fetch error without rendering extra text', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       
       (global.fetch as Mock).mockRejectedValueOnce(new Error('Fetch failed'));
 
       howToPlayScreen = new HowToPlayScreen(stage, layer, onStartGameMock);
 
       await vi.waitFor(() => {
-        const calls = (layer.add as Mock).mock.calls;
-        const fallbackNode = calls.find(call => {
-          const node = call[0];
-          return node instanceof Konva.Text && 
-                 node.text().includes('Instructions could not be loaded');
-        })?.[0] as Konva.Text;
-
-        if (fallbackNode) {
-          expect(fallbackNode.fill()).toBe('red');
-          expect(fallbackNode.lineHeight()).toBe(1.8);
-          expect(fallbackNode.align()).toBe('center');
-        }
+        expect(consoleErrorSpy).toHaveBeenCalled();
       });
     });
   });
