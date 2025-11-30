@@ -180,6 +180,8 @@ describe("DaySummaryScreen", () => {
     vi.stubGlobal("window", {
       location: { href: "about:blank" },
       Image: (globalThis as any).Image,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
     });
   });
 
@@ -218,6 +220,6 @@ describe("DaySummaryScreen", () => {
     expect(texts).toContain("Sales (Cookies Sold): $500.00");
 
     exitButtonState.lastCallback?.();
-    expect(window.location.href).toBe("/login.hmtl");
+    expect(window.location.href).toBe("/login.html");
   });
 });

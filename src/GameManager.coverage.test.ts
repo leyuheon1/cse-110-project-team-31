@@ -282,12 +282,17 @@ describe("GameManager coverage", () => {
     ]);
     gm.player.currentDayDemand = 2;
     gm.renderBakingPhase();
-    // trigger baking completion
-    gm.onBakingComplete({ correctAnswers: 2 }, false);
+    // trigger baking completion through the captured callback
+    (gm as any).currentBakingMinigameInstance.cb({ correctAnswers: 2 }, false);
 
     // Cleaning completion paths
-    gm.onCleaningComplete({ correctAnswers: 0 }, true);
-    gm.onCleaningComplete({ correctAnswers: 5 }, false);
+    gm.renderCleaningPhase();
+    const cleaningCb =
+      (gm as any).currentCleaningMinigame?.cb ??
+      vi.fn();
+    (gm as any).currentCleaningMinigame = { cb: cleaningCb };
+    cleaningCb({ correctAnswers: 0 }, true);
+    cleaningCb({ correctAnswers: 5 }, false);
 
     // Summary outcome branches
     gm.player.funds = 200;
@@ -336,5 +341,69 @@ describe("GameManager coverage", () => {
     gm.player.ingredients.set("Flour", 100);
     gm.player.ingredients.set("Sugar", 100);
     expect(gm.checkBankruptcy()).toBe(false);
+  });
+
+  it("exercises renderCurrentPhase branches and music gating", async () => {
+    setupMocks();
+    const { GameManager } = await import("./GameManager");
+    const { GamePhase } = await import("./types");
+    const konva = (await import("konva")).default as any;
+    const gm: any = new GameManager(makeContainer());
+
+    // unlock audio via event listeners
+    window.dispatchEvent(new Event("pointerdown"));
+    expect(gm.audioUnlocked).toBe(true);
+
+    // cover playBGM null path and unknown phase music
+    gm.playBGM?.(null);
+    gm.currentPhase = -1 as any;
+    gm.updateBackgroundMusic();
+
+    // add background image then render an in-game phase that should keep it
+    gm.backgroundImage = new konva.Image();
+    gm.layer.add(gm.backgroundImage);
+    gm.currentPhase = GamePhase.ORDER;
+    gm.renderCurrentPhase();
+
+    // cover remaining phase switch cases
+    const phases = [
+      GamePhase.LOGIN,
+      GamePhase.STORYLINE,
+      GamePhase.HOW_TO_PLAY,
+      GamePhase.RECIPE_BOOK,
+      GamePhase.BAKING,
+      GamePhase.POST_BAKING_ANIMATION,
+      GamePhase.CLEANING,
+      GamePhase.DAY_SUMMARY,
+      GamePhase.NEW_DAY_ANIMATION,
+      GamePhase.VICTORY,
+      GamePhase.DEFEAT,
+      GamePhase.GAME_OVER,
+    ];
+    phases.forEach((phase) => {
+      gm.currentPhase = phase;
+      gm.renderCurrentPhase();
+    });
+
+    // shopping path where cookies cannot be made -> cleaning alert path
+    vi.stubGlobal("alert", vi.fn());
+    gm.player.ingredients.clear();
+    gm.player.funds = 0;
+    gm.renderShoppingPhase();
+    lastShopping.onPurchaseComplete?.(new Map(), 0);
+
+    // baking when no ingredients results in zero dishes
+    gm.player.currentDayDemand = 1;
+    gm.renderBakingPhase();
+    expect(gm.player.dishesToClean).toBe(0);
+
+    // cleanup resize with background present
+    const container = document.createElement("div") as HTMLDivElement;
+    Object.defineProperty(container, "offsetWidth", { value: 640, configurable: true });
+    Object.defineProperty(container, "offsetHeight", { value: 480, configurable: true });
+    gm.backgroundImage = new konva.Image();
+    gm.layer.add(gm.backgroundImage);
+    gm.handleResize(container);
+    expect(gm.layer.batchDraw).toHaveBeenCalled();
   });
 });

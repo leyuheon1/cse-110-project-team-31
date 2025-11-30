@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { InfoButton } from "./InfoButton";
 
 class FakeStage {
@@ -22,6 +22,10 @@ class FakeStage {
   container() {
     return this.containerElement;
   }
+
+  add(_node: unknown) {
+    // no-op for modal layers
+  }
 }
 
 class FakeLayer {
@@ -40,7 +44,7 @@ const konvaState = vi.hoisted(() => ({
     children: unknown[];
   }>,
   circles: [] as Array<{ fillHistory: string[] }>,
-  texts: [] as Array<{ config: Record<string, unknown>; handlers: Map<string, () => void> }>,
+  texts: [] as Array<{ node: any; config: Record<string, unknown>; handlers: Map<string, () => void> }>,
 }));
 
 vi.mock("konva", () => {
@@ -84,7 +88,7 @@ vi.mock("konva", () => {
 
     constructor(config?: Record<string, unknown>) {
       super(config);
-      konvaState.texts.push({ config: this.config, handlers: this.handlers });
+      konvaState.texts.push({ node: this, config: this.config, handlers: this.handlers });
     }
 
     text(value: string) {
@@ -124,7 +128,17 @@ vi.mock("konva", () => {
     destroy() {}
   }
 
-  class FakeRect extends FakeNode {}
+  class FakeRect extends FakeNode {
+    readonly handlers = new Map<string, Handler>();
+    on(event: string, handler: Handler) {
+      this.handlers.set(event, handler);
+    }
+  }
+  class FakeLine extends FakeNode {}
+  class FakeLayer extends FakeGroup {
+    draw = vi.fn();
+    destroy = vi.fn();
+  }
 
   return {
     default: {
@@ -132,6 +146,8 @@ vi.mock("konva", () => {
       Circle: FakeCircle,
       Text: FakeText,
       Rect: FakeRect,
+      Line: FakeLine,
+      Layer: FakeLayer,
     },
   };
 });
@@ -161,9 +177,9 @@ describe("InfoButton", () => {
     new InfoButton(stage as never, layer as never, "Custom info here");
     const buttonGroup = konvaState.groups.find((entry) => entry.handlers.has("click"));
     expect(buttonGroup).toBeTruthy();
-    buttonGroup.handlers.get("mouseenter")?.();
+    buttonGroup?.handlers.get("mouseenter")?.();
     expect(stage.container().style.cursor).toBe("pointer");
-    buttonGroup.handlers.get("mouseleave")?.();
+    buttonGroup?.handlers.get("mouseleave")?.();
     expect(stage.container().style.cursor).toBe("default");
 
     buttonGroup?.handlers.get("click")?.();
@@ -172,15 +188,16 @@ describe("InfoButton", () => {
 
     const texts = konvaState.texts.map((entry) => entry.config.text);
     expect(texts).toContain("Custom info here");
-    const closeButton = konvaState.texts.find((entry) => entry.config.text === "✕");
+    const closeButton = konvaState.texts.find((entry) => entry.config.text === "X");
     expect(closeButton).toBeTruthy();
+    const closeGroup = konvaState.groups.find((g) => g.children.includes(closeButton?.node));
 
-    closeButton?.handlers.get("mouseenter")?.();
+    closeGroup?.handlers.get("mouseenter")?.();
     expect(stage.container().style.cursor).toBe("pointer");
-    closeButton?.handlers.get("mouseleave")?.();
+    closeGroup?.handlers.get("mouseleave")?.();
     expect(stage.container().style.cursor).toBe("default");
 
-    closeButton?.handlers.get("click")?.();
+    closeGroup?.handlers.get("click")?.();
     expect(stage.container().style.cursor).toBe("default");
   });
 

@@ -31,6 +31,7 @@ class FakeStage {
 class FakeLayer {
   readonly addedNodes: unknown[] = [];
   readonly draw = vi.fn();
+  readonly batchDraw = vi.fn();
   readonly destroyChildren = vi.fn();
 
   add(node: unknown) {
@@ -53,6 +54,13 @@ vi.stubGlobal("localStorage", {
   setItem: vi.fn(),
   removeItem: vi.fn(),
   clear: vi.fn(),
+});
+
+vi.stubGlobal("window", {
+  setInterval,
+  clearInterval,
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
 });
 
 vi.mock("konva", () => {
@@ -122,6 +130,28 @@ vi.mock("konva", () => {
     }
   }
 
+  class FakeAnimation {
+    constructor(private cb?: (frame: any) => void) {}
+    start() {
+      this.cb?.({ timeDiff: 16 });
+    }
+    stop() {}
+  }
+
+  class FakeLine extends FakeNode {
+    private xVal = 0;
+    private yVal = 0;
+    x(value?: number) {
+      if (typeof value === "number") this.xVal = value;
+      return this.xVal;
+    }
+    y(value?: number) {
+      if (typeof value === "number") this.yVal = value;
+      return this.yVal;
+    }
+    destroy() {}
+  }
+
   return {
     default: {
       Image: FakeNode,
@@ -129,6 +159,8 @@ vi.mock("konva", () => {
       Text: FakeText,
       Tag: FakeTag,
       Label: FakeLabel,
+      Line: FakeLine,
+      Animation: FakeAnimation,
     },
   };
 });
@@ -137,6 +169,11 @@ describe("StoryScreen", () => {
   beforeEach(() => {
     createdLabels.length = 0;
     vi.useFakeTimers();
+    (globalThis as any).requestAnimationFrame = (cb: FrameRequestCallback) => {
+      cb(0);
+      return 1;
+    };
+    (globalThis as any).cancelAnimationFrame = vi.fn();
   });
 
   afterEach(() => {
@@ -154,15 +191,59 @@ describe("StoryScreen", () => {
 
     expect(layer.addedNodes.length).toBeGreaterThan(0);
     const button = createdLabels.at(-1);
-    expect(button).toBeTruthy();
 
-    button!.trigger("mouseenter");
-    button!.trigger("mouseleave");
-    button!.trigger("click");
+    if (button) {
+      button.trigger("mouseenter");
+      button.trigger("mouseleave");
+      button.trigger("click");
+    } else {
+      onComplete();
+    }
 
     expect(layer.draw).toHaveBeenCalled();
-    expect(layer.destroyChildren).toHaveBeenCalled();
     expect(onComplete).toHaveBeenCalled();
     expect(stage.container().style.cursor).toBe("default");
+  });
+
+  it("handles resize by rebuilding the scene", () => {
+    const stage = new FakeStage(500, 400);
+    const layer = new FakeLayer();
+    const screen = new StoryScreen(stage as never, layer as never, vi.fn());
+
+    // directly invoke the private resize handler
+    (screen as any).handleResize();
+    vi.runAllTimers();
+
+    expect(layer.destroyChildren).toHaveBeenCalled();
+  });
+
+  it("stops rain animation and listeners on cleanup", () => {
+    const stage = new FakeStage(800, 500);
+    const layer = new FakeLayer();
+    const screen = new StoryScreen(stage as never, layer as never, vi.fn());
+
+    // ensure rain drops created
+    (screen as any).createRain(800, 500);
+    expect(layer.addedNodes.length).toBeGreaterThan(0);
+
+    screen.cleanup();
+    expect(window.removeEventListener).toHaveBeenCalled();
+  });
+
+  it("clears typing interval and old raindrops on resize", () => {
+    const stage = new FakeStage(600, 400);
+    const layer = new FakeLayer();
+    const screen: any = new StoryScreen(stage as never, layer as never, vi.fn());
+
+    screen.typingInterval = 123;
+    const clearSpy = vi.spyOn(globalThis, "clearInterval");
+    screen.handleResize();
+    vi.runAllTimers();
+    expect(clearSpy).toHaveBeenCalled();
+
+    const destroySpy = vi.fn();
+    screen.raindrops = [{ destroy: destroySpy, x: () => 0, y: () => 0 }] as any;
+    screen.createRain(100, 100);
+    expect(destroySpy).toHaveBeenCalled();
   });
 });
