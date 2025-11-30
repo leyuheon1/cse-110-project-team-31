@@ -23,9 +23,6 @@ export class GameManager {
   private player: PlayerState;
   private config = ConfigManager.getInstance().getConfig();
 
-  // FIXED: Added missing property to store orders
-  private customerOrders: any[] = [];
-
   // Minigame & Animation Instances
   private currentBakingMinigameInstance: BakingMinigame | null = null;
   private currentCleaningMinigame: CleaningMinigame | null = null;
@@ -228,6 +225,9 @@ export class GameManager {
           return;
         }
         child.remove();
+      } catch (e) {
+        console.warn('Error removing child during cleanup:', e);
+      }
     });
 
     try {
@@ -285,36 +285,19 @@ export class GameManager {
         break;
       case GamePhase.ORDER:
         new OrderScreen(
-          this.stage, this.layer,
-          this.player.currentDay, this.player.reputation,
+          this.stage,
+          this.layer,
+          this.player.currentDay,
+          this.player.reputation,
           (totalDemand, orders) => {
             this.player.currentDayDemand = totalDemand;
-
-            // Defensive coding for customerOrders
-            if (!Array.isArray(customerOrders)) {
-              console.error('OrderScreen returned invalid customerOrders (expected Array):', customerOrders);
-              if (customerOrders && typeof customerOrders === 'object') {
-                if (Array.isArray((customerOrders as any).orders)) {
-                  this.customerOrders = (customerOrders as any).orders;
-                } else {
-                  try {
-                    const coerced = Object.values(customerOrders).filter((v) => v && typeof v === 'object');
-                    this.customerOrders = coerced.length ? (coerced as any) : [];
-                  } catch (e) {
-                    this.customerOrders = [];
-                  }
-                }
-              } else {
-                this.customerOrders = [];
-              }
-            } else {
-              this.customerOrders = customerOrders;
-            }
+            // Store a shallow copy of orders for safety
+            this.customerOrders = orders.map((o) => ({ ...o }));
 
             this.previousPhase = this.currentPhase;
             this.currentPhase = GamePhase.RECIPE_BOOK;
             this.renderCurrentPhase();
-          }
+          },
         );
         break;
       case GamePhase.RECIPE_BOOK:
