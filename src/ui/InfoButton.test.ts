@@ -26,6 +26,10 @@ class FakeStage {
   add(_node: unknown) {
     // no-op for modal layers
   }
+
+  getPointerPosition() {
+    return { x: 0, y: 0 };
+  }
 }
 
 class FakeLayer {
@@ -76,10 +80,31 @@ vi.mock("konva", () => {
 
   class FakeCircle extends FakeNode {
     readonly fillHistory: string[] = [];
+    private readonly handlers = new Map<string, Handler>();
 
     fill(color: string) {
       this.fillHistory.push(color);
       this.config.fill = color;
+    }
+
+    on(event: string, handler: Handler) {
+      this.handlers.set(event, handler);
+    }
+
+    x(value?: number) {
+      if (typeof value === "number") this.config.x = value;
+      return (this.config.x as number) ?? 0;
+    }
+
+    y(value?: number) {
+      if (typeof value === "number") this.config.y = value;
+      return (this.config.y as number) ?? 0;
+    }
+
+    position(pos?: { x?: number; y?: number }) {
+      if (pos?.x !== undefined) this.config.x = pos.x;
+      if (pos?.y !== undefined) this.config.y = pos.y;
+      return { x: this.x(), y: this.y() };
     }
   }
 
@@ -138,6 +163,7 @@ vi.mock("konva", () => {
   class FakeLayer extends FakeGroup {
     draw = vi.fn();
     destroy = vi.fn();
+    batchDraw = vi.fn();
   }
 
   return {

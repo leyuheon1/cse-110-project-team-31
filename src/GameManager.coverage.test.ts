@@ -191,6 +191,7 @@ function setupMocks(options: { animResolves?: boolean; backgroundFails?: boolean
     (mod) => {
       vi.doMock(`./${mod}`, () => ({
         [mod]: class {
+          volumeChangeCallback?: (v: number) => void;
           constructor(...args: any[]) {
             // capture callbacks if present
             const last = args[args.length - 1];
@@ -198,6 +199,7 @@ function setupMocks(options: { animResolves?: boolean; backgroundFails?: boolean
               (this as any).cb = last;
             }
           }
+          setVolume(_v: number) {}
         },
       }));
     }

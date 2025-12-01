@@ -103,6 +103,19 @@ function createKonvaMock() {
   class FakeText extends FakeNode {}
   class FakeImage extends FakeNode {}
   class FakeLine extends FakeNode {}
+  class FakeCircle extends FakeNode {}
+
+  // Expose helper methods used by VolumeSlider
+  FakeNode.prototype.position = function (pos?: { x?: number; y?: number }) {
+    if (pos) {
+      if (pos.x !== undefined) this.config.x = pos.x;
+      if (pos.y !== undefined) this.config.y = pos.y;
+    }
+    return { x: this.config.x ?? 0, y: this.config.y ?? 0 };
+  };
+  FakeNode.prototype.getPointerPosition = function () {
+    return { x: this.config.x ?? 0, y: this.config.y ?? 0 };
+  };
 
   return {
     default: {
@@ -113,6 +126,7 @@ function createKonvaMock() {
       Text: FakeText,
       Image: FakeImage,
       Line: FakeLine,
+      Circle: FakeCircle,
     },
   };
 }

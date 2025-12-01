@@ -64,10 +64,19 @@ vi.mock("konva", () => {
     text = this.accessor("text", "");
     cornerRadius = this.accessor("cornerRadius", 0);
     opacity = this.accessor("opacity", 1);
+
+    position(pos?: { x?: number; y?: number }) {
+      if (pos?.x !== undefined) this.config.x = pos.x;
+      if (pos?.y !== undefined) this.config.y = pos.y;
+      return { x: this.config.x ?? 0, y: this.config.y ?? 0 };
+    }
   }
 
   class StageStub extends NodeStub {
     containerEl = { style: { cursor: "default" } };
+    getPointerPosition() {
+      return { x: this.config.x ?? 0, y: this.config.y ?? 0 };
+    }
     container() {
       return this.containerEl;
     }
@@ -87,6 +96,7 @@ vi.mock("konva", () => {
     }
   }
   class ImageStub extends NodeStub {}
+  class CircleStub extends NodeStub {}
 
   return {
     default: {
@@ -96,6 +106,7 @@ vi.mock("konva", () => {
       Rect: RectStub,
       Text: TextStub,
       Image: ImageStub,
+      Circle: CircleStub,
     },
   };
 });

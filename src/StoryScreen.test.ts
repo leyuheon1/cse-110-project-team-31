@@ -26,6 +26,10 @@ class FakeStage {
   container() {
     return this.containerElement;
   }
+
+  getPointerPosition() {
+    return { x: 0, y: 0 };
+  }
 }
 
 class FakeLayer {
@@ -68,8 +72,15 @@ vi.mock("konva", () => {
 
   class FakeNode<T = unknown> {
     config: T;
+    handlers = new Map<string, Handler>();
     constructor(config: T) {
       this.config = config;
+    }
+    on(event: string, handler: Handler) {
+      this.handlers.set(event, handler);
+    }
+    fire(event: string) {
+      this.handlers.get(event)?.();
     }
   }
 
@@ -152,6 +163,46 @@ vi.mock("konva", () => {
     destroy() {}
   }
 
+  class FakeGroup extends FakeNode {
+    private handlers = new Map<string, Handler>();
+    private readonly children: unknown[] = [];
+    add(...children: unknown[]) {
+      this.children.push(...children);
+      return this;
+    }
+    on(event: string, handler: Handler) {
+      this.handlers.set(event, handler);
+    }
+    x(value?: number) {
+      if (typeof value === "number") (this.config as any).x = value;
+      return (this.config as any).x ?? 0;
+    }
+    y(value?: number) {
+      if (typeof value === "number") (this.config as any).y = value;
+      return (this.config as any).y ?? 0;
+    }
+  }
+
+  class FakeCircle extends FakeNode {
+    private handlers = new Map<string, Handler>();
+    on(event: string, handler: Handler) {
+      this.handlers.set(event, handler);
+    }
+    x(value?: number) {
+      if (typeof value === "number") (this.config as any).x = value;
+      return (this.config as any).x ?? 0;
+    }
+    y(value?: number) {
+      if (typeof value === "number") (this.config as any).y = value;
+      return (this.config as any).y ?? 0;
+    }
+    position(pos?: { x?: number; y?: number }) {
+      if (pos?.x !== undefined) (this.config as any).x = pos.x;
+      if (pos?.y !== undefined) (this.config as any).y = pos.y;
+      return { x: (this.config as any).x ?? 0, y: (this.config as any).y ?? 0 };
+    }
+  }
+
   return {
     default: {
       Image: FakeNode,
@@ -161,6 +212,8 @@ vi.mock("konva", () => {
       Label: FakeLabel,
       Line: FakeLine,
       Animation: FakeAnimation,
+      Group: FakeGroup,
+      Circle: FakeCircle,
     },
   };
 });
