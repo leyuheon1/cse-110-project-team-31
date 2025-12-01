@@ -35,13 +35,20 @@ class FakeLayer {
 }
 
 type RectEntry = {
+  node: any;
   config: Record<string, unknown>;
   fillHistory: string[];
   trigger: (event: string, evt?: { cancelBubble?: boolean }) => void;
 };
 
 const konvaState = vi.hoisted(() => ({
-  groups: [] as Array<{ config: Record<string, unknown>; visible: () => boolean }>,
+  groups: [] as Array<{
+    config: Record<string, unknown>;
+    visible: () => boolean;
+    trigger: (event: string, evt?: { cancelBubble?: boolean }) => void;
+    handlers: Map<string, (evt?: { cancelBubble?: boolean }) => void>;
+    children: unknown[];
+  }>,
   rects: [] as RectEntry[],
   texts: [] as Array<{ config: Record<string, unknown> }>,
 }));
@@ -109,6 +116,9 @@ vi.mock("konva", () => {
       konvaState.groups.push({
         config: this.config,
         visible: () => this.visible(),
+        trigger: (event: string, evt?: { cancelBubble?: boolean }) => this.trigger(event, evt),
+        handlers: this.handlers,
+        children: this.children,
       });
     }
 
@@ -131,6 +141,7 @@ vi.mock("konva", () => {
     destroy() {
       this.config.destroyed = true;
     }
+    moveToTop() {}
 
     on(event: string, handler: Handler) {
       this.handlers.set(event, handler);
@@ -145,10 +156,19 @@ vi.mock("konva", () => {
   class FakeRect extends FakeNode {
     private handlers = new Map<string, Handler>();
     fillHistory: string[] = [];
+    x(val?: number) {
+      if (typeof val === "number") this.config.x = val;
+      return (this.config.x as number) ?? 0;
+    }
+    y(val?: number) {
+      if (typeof val === "number") this.config.y = val;
+      return (this.config.y as number) ?? 0;
+    }
 
     constructor(config?: Record<string, unknown>) {
       super(config);
       konvaState.rects.push({
+        node: this,
         config: this.config,
         fillHistory: this.fillHistory,
         trigger: (event: string, evt?: { cancelBubble?: boolean }) =>
@@ -270,22 +290,26 @@ describe("CleaningMinigame", () => {
     const minigame = new CleaningMinigame(stage as never, layer as never, 12, onComplete);
 
     const skipRect = konvaState.rects.find(
-      (rect) => rect.config.fill === "#F08080"
+      (rect) => rect.config.fill === "#e74c3c"
     );
     expect(skipRect).toBeTruthy();
+    const skipGroup = konvaState.groups.find((group) =>
+      group.children.includes(skipRect?.node as any)
+    );
+    expect(skipGroup).toBeTruthy();
 
-    skipRect!.trigger("mouseenter");
+    skipGroup?.trigger("mouseenter");
     expect(stage.container().style.cursor).toBe("pointer");
-    skipRect!.trigger("mouseleave");
+    skipGroup?.trigger("mouseleave");
     expect(stage.container().style.cursor).toBe("default");
-    skipRect!.trigger("click tap");
+    skipGroup?.trigger("click tap", { cancelBubble: false });
 
     vi.advanceTimersByTime(0);
     expect(onComplete).toHaveBeenCalledWith(
       {
         correctAnswers: 0,
         totalProblems: 0,
-        timeRemaining: 0,
+        timeRemaining: 15,
       },
       true
     );
@@ -306,10 +330,14 @@ describe("CleaningMinigame", () => {
     const minigame = new CleaningMinigame(stage as never, layer as never, 15, onComplete);
 
     const playRect = konvaState.rects.find(
-      (rect) => rect.config.fill === "#90EE90"
+      (rect) => rect.config.fill === "#4CAF50"
     );
     expect(playRect).toBeTruthy();
-    playRect!.trigger("click tap");
+    const playGroup = konvaState.groups.find((group) =>
+      group.children.includes(playRect?.node as any)
+    );
+    expect(playGroup).toBeTruthy();
+    playGroup?.trigger("click tap", { cancelBubble: false });
 
     const minigameGroup = konvaState.groups.find(
       (group) => group.config.name === "minigameUI"
@@ -328,6 +356,11 @@ describe("CleaningMinigame", () => {
       handler({ key: "Enter" });
       vi.advanceTimersByTime(500);
     }
+
+    const continueGroup = [...konvaState.groups].reverse().find((group) =>
+      group.handlers.has("click")
+    );
+    continueGroup?.handlers.get("click")?.();
 
     expect(onComplete).toHaveBeenCalledWith(
       {

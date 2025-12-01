@@ -53,6 +53,8 @@ function createKonvaMock() {
     stroke = this.accessor("stroke", "");
     shadowBlur = this.accessor("shadowBlur", 0);
     shadowOffset = this.accessor("shadowOffset", { x: 0, y: 0 });
+    shadowOpacity = this.accessor("shadowOpacity", 0);
+    shadowColor = this.accessor("shadowColor", "");
     opacity = this.accessor("opacity", 1);
     cornerRadius = this.accessor("cornerRadius", 0);
     fontFamily = this.accessor("fontFamily", "");
@@ -123,6 +125,11 @@ describe("LoginScreen basic flow", () => {
   beforeEach(async () => {
     const konvaMock = createKonvaMock();
     vi.doMock("konva", () => konvaMock);
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb: FrameRequestCallback) => {
+      cb(0);
+      return 1;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
     // mock image to auto-load
     vi.stubGlobal(
       "Image",
@@ -168,5 +175,53 @@ describe("LoginScreen basic flow", () => {
 
     screen.cleanup();
     expect(layer.draw).toHaveBeenCalled();
+  });
+
+  it("validates empty input on enter and start button", () => {
+    const screen = new LoginScreen(stage as any, layer as any, onLogin);
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    (screen as any).inputBox.fire("click");
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    expect(alertSpy).toHaveBeenCalledTimes(1);
+
+    // clicking start button also should alert when empty
+    const signGroup = layer.children.find((c: any) =>
+      c.children?.some((child: any) => child.config?.text === "START GAME")
+    );
+    expect(signGroup).toBeTruthy();
+    signGroup?.fire("click");
+    expect(alertSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("restores input state after resize", () => {
+    const screen = new LoginScreen(stage as any, layer as any, onLogin);
+    (screen as any).focusInput();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "A" }));
+
+    // simulate resize flow
+    const destroySpy = vi.spyOn(layer, "destroyChildren");
+    (screen as any).handleResize();
+    expect(destroySpy).toHaveBeenCalled();
+
+    // cursor should be visible again after resize and focus
+    expect((screen as any).inputFocused).toBe(true);
+  });
+
+  it("hovering start button changes cursor and clicking logs in", () => {
+    const screen = new LoginScreen(stage as any, layer as any, onLogin);
+    const button = layer.children.find((c: any) =>
+      c.children?.some((child: any) => child.config?.text === "START GAME")
+    );
+    const board = button?.find()[1];
+
+    button?.fire("mouseenter");
+    expect(stage.container().style.cursor).toBe("pointer");
+    button?.fire("mouseleave");
+    expect(stage.container().style.cursor).toBe("default");
+
+    (screen as any).username = "Tester";
+    button?.fire("click");
+    expect(onLogin).toHaveBeenCalledWith("Tester");
   });
 });

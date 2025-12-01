@@ -108,8 +108,15 @@ describe("LoseScreen", () => {
       onReturnHome: onReturn,
     });
 
-    const button = layer.getChildren().find((c: any) => c.handlers?.has("click"));
-    button?.handlers.get("click")?.();
+    const button = layer
+      .getChildren()
+      .find((c: any) =>
+        Array.from(c.handlers?.keys?.() ?? []).some((key) => key.includes("click"))
+      );
+    const clickEvent = Array.from(button?.handlers.keys?.() ?? []).find((key) =>
+      key.includes("click")
+    );
+    clickEvent && button?.handlers.get(clickEvent)?.();
 
     expect(onReturn).toHaveBeenCalledTimes(1);
     expect(layer.draw).toHaveBeenCalled();

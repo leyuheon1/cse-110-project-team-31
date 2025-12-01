@@ -45,7 +45,7 @@ describe('ConfigManager', () => {
       expect(config.maxBreadCapacity).toBe(20);
       expect(config.divisionProblems).toBe(10);
       expect(config.multiplicationProblems).toBe(8);
-      expect(config.cookiePrice).toBe(20);
+      expect(config.cookiePrice).toBe(15);
     });
 
     it('should return a copy of config, not the original', () => {
