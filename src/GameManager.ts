@@ -13,7 +13,7 @@ import { AnimationPlayer } from './AnimationPlayer';
 import { StoryScreen } from './StoryScreen';
 import { VictoryScreen } from './VictoryScreen';
 import { LoseScreen } from './LoseScreen';
-import { VolumeSlider } from './ui/Volumeslider';
+import { VolumeSlider } from './ui/VolumeSlider';
 
 
 

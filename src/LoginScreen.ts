@@ -1,17 +1,17 @@
 import Konva from 'konva';
-import { VolumeSlider } from './ui/Volumeslider';
+import { VolumeButton } from './ui/VolumeButton';
 
 export class LoginScreen {
     private layer: Konva.Layer;
     private stage: Konva.Stage;
     private onLogin: (username: string) => void;
-    private volumeSlider?: VolumeSlider;
+    private volumeButton?: VolumeButton;
     public volume: number = 0.5;
 
     public setVolume(v: number): void {
         this.volume = Math.max(0, Math.min(1, v));
-        if (this.volumeSlider) {
-            this.volumeSlider.setVolume(this.volume);
+        if (this.volumeButton) {
+            this.volumeButton.setVolume(this.volume);
         }
     }
     
@@ -35,21 +35,17 @@ export class LoginScreen {
 
         this.keyboardHandler = this.handleKeyPress.bind(this);
         
-        // FIX 1: Bind the resize handler so we can add/remove it
         this.resizeHandler = this.handleResize.bind(this);
 
         this.setupUI();
         
-        // FIX 2: Add the event listener
         window.addEventListener('resize', this.resizeHandler);
     }
 
-    // FIX 3: Handle the resize efficiently
     private handleResize(): void {
         if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
 
         this.animationFrameId = requestAnimationFrame(() => {
-            // Stop blinking cursor from the 'old' UI
             if (this.cursorInterval) clearInterval(this.cursorInterval);
             
             this.layer.destroyChildren();
@@ -74,16 +70,10 @@ export class LoginScreen {
 
         this.volume = initialVolume;
 
-        this.volumeSlider = new VolumeSlider(
+        this.volumeButton = new VolumeButton(
         this.stage,
         this.layer,
-        initialVolume,
-        (v: number) => {
-            this.volume = v;
-            if (typeof setGlobalBgmVolume === 'function') {
-            setGlobalBgmVolume(v);     // tell GameManager to update audio
-            }
-        }
+        initialVolume
         );
 
         // BACKGROUND IMAGE
@@ -364,12 +354,13 @@ export class LoginScreen {
     public cleanup(): void {
         if (this.cursorInterval) clearInterval(this.cursorInterval);
         
-        // FIX 7: Remove all listeners correctly
         window.removeEventListener('keydown', this.keyboardHandler);
         window.removeEventListener('resize', this.resizeHandler); // Important!
 
         if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
         
         if (this.loginBackground) this.loginBackground.destroy();
+
+        if (this.volumeButton) this.volumeButton.destroy();
     }
 }

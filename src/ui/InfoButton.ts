@@ -1,5 +1,5 @@
 import Konva from "konva";
-import { VolumeSlider } from './Volumeslider';
+import { VolumeSlider } from './VolumeSlider';
 
 
 export class InfoButton {

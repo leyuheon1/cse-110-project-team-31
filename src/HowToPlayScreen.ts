@@ -1,6 +1,6 @@
 import Konva from 'konva';
 import { ExitButton } from './ui/ExitButton';
-import { VolumeSlider } from './ui/Volumeslider';
+import { VolumeButton } from './ui/VolumeButton';
 
 
 export class HowToPlayScreen {
@@ -11,13 +11,13 @@ export class HowToPlayScreen {
     private currentRenderId: number = 0;
     private isActive: boolean = true; 
 
-    private volumeSlider?: VolumeSlider;
+    private volumeButton?: VolumeButton;
     public volume: number = 0.5;  // current value (0–1)
     public volumeChangeCallback?: (v: number) => void;
     public setVolume(v: number): void {
     this.volume = Math.max(0, Math.min(1, v));
-    if (this.volumeSlider) {
-      this.volumeSlider.setVolume(this.volume); // move knob to match
+    if (this.volumeButton) {
+      this.volumeButton.setVolume(this.volume); // move knob to match
     }
   }
 
@@ -126,23 +126,10 @@ export class HowToPlayScreen {
         // keep local field in sync
         this.volume = initialVolume;
 
-        this.volumeSlider = new VolumeSlider(
+        this.volumeButton = new VolumeButton(
             this.stage,
             this.layer,
-            initialVolume,
-            (v: number) => {
-                this.volume = v;
-
-                // update global BGM volume in GameManager
-                if (typeof setGlobalBgmVolume === 'function') {
-                    setGlobalBgmVolume(v);
-                }
-
-                // if you still want a per-screen callback, keep this:
-                if (this.volumeChangeCallback) {
-                    this.volumeChangeCallback(v);
-                }
-            }
+            initialVolume
         );
         
         new ExitButton(this.stage, this.layer, () => {
@@ -352,6 +339,11 @@ export class HowToPlayScreen {
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
         }
+
+        if (this.volumeButton) {
+            this.volumeButton.destroy();
+        }
+        
         window.removeEventListener('resize', this.handleResize);
         
         this.layer.destroyChildren(); 

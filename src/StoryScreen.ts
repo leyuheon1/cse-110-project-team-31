@@ -1,19 +1,19 @@
 import Konva from "konva";
 import { ConfigManager } from "./config"; // Import ConfigManager
-import { VolumeSlider } from './ui/Volumeslider';
+import { VolumeButton } from './ui/VolumeButton';
 
 export class StoryScreen {
   private stage: Konva.Stage;
   private layer: Konva.Layer;
   private onComplete: () => void;
 
-  private volumeSlider?: VolumeSlider;
+  private volumeButton?: VolumeButton;
   public volume: number = 0.5;
 
   public setVolume(v: number): void {
     this.volume = Math.max(0, Math.min(1, v));
-    if (this.volumeSlider) {
-      this.volumeSlider.setVolume(this.volume);
+    if (this.volumeButton) {
+      this.volumeButton.setVolume(this.volume);
     }
   }
   
@@ -73,16 +73,10 @@ export class StoryScreen {
 
     this.volume = initialVolume;
 
-    this.volumeSlider = new VolumeSlider(
+    this.volumeButton = new VolumeButton(
       this.stage,
       this.layer,
-      initialVolume,
-      (v: number) => {
-        this.volume = v;
-        if (typeof setGlobalBgmVolume === 'function') {
-          setGlobalBgmVolume(v);
-        }
-      }
+      initialVolume
     );
 
     // Responsive Constants
@@ -347,25 +341,13 @@ export class StoryScreen {
     }
 
     this.volume = initialVolume;
-
-    this.volumeSlider = new VolumeSlider(
-      this.stage,
-      this.layer,
-      initialVolume,
-      (v: number) => {
-        this.volume = v;
-        if (typeof setGlobalBgmVolume === 'function') {
-          setGlobalBgmVolume(v);
-        }
-      }
-    );
-
   }
 
   public cleanup() {
     if (this.typingInterval) clearInterval(this.typingInterval);
     if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
     if (this.rainAnimation) this.rainAnimation.stop();
+    if (this.volumeButton) this.volumeButton.destroy();
     this.raindrops.forEach(drop => drop.destroy());
     this.raindrops = [];
     window.removeEventListener('resize', this.resizeHandler);

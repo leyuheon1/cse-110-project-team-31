@@ -84,7 +84,7 @@ export class VolumeSlider {
     const label = new Konva.Text({
       x: 0,
       y: this.knobRadius * 2 + 4,
-      text: 'BGM Volume',
+      text: 'Audio Volume',
       fontSize: 14,
       fontFamily: 'Arial',
     });
@@ -97,12 +97,10 @@ export class VolumeSlider {
   }
 
   private xToVolume(x: number): number {
-    // x is 0..sliderWidth in LOCAL coords
     const v = x / this.sliderWidth;
     return Math.max(0, Math.min(1, v));
   }
 
-  // If you ever want to update knob position from code:
   public setVolume(v: number) {
     const vol = Math.max(0, Math.min(1, v));
     const x = vol * this.sliderWidth;
