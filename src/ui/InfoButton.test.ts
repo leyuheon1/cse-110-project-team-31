@@ -383,11 +383,18 @@ const volumeState = vi.hoisted(() => ({ // Shared VolumeSlider spies to drive ca
 }));
 vi.mock("./Volumeslider", () => ({ // Mock VolumeSlider to avoid DOM and expose callback.
   VolumeSlider: class { // Minimal proxy matching the constructor and setVolume API.
+    private width = 160;
     constructor(_stage: any, _layer: any, _initial: number, cb: (v: number) => void) { // Capture callback when instantiated.
       volumeState.lastCallback = cb; // Save callback for later manual invocation.
     }
     setVolume(v: number) { // Proxy setVolume that records calls.
       volumeState.lastSetVolume(v); // Record the value to assert clamping and updates.
+    }
+    getWidth() { // Mirror VolumeSlider layout helper used by InfoButton.
+      return this.width;
+    }
+    setPosition(_x: number, _y: number) {
+      /* layout helper stub */
     }
   },
 }));

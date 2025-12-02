@@ -79,7 +79,14 @@ class FakeCircle extends FakeNode {
   }
 }
 
-class FakeText extends FakeNode {}
+class FakeText extends FakeNode {
+  width() {
+    return (this.config.width as number) ?? 0; // mimic Konva width method
+  }
+  offsetX(_value: number) {
+    /* no-op for tests */
+  }
+}
 
 // Factory that wires Fake Konva into the module system for each test.
 vi.mock("konva", () => ({
@@ -92,6 +99,13 @@ vi.mock("konva", () => ({
     Text: FakeText,
   },
 })); // hoisted Konva mock so VolumeSlider always uses fakes
+
+vi.stubGlobal("Image", class {
+  onload: (() => void) | null = null;
+  set src(_: string) {
+    this.onload?.();
+  }
+});
 
 describe("VolumeSlider", () => {
   beforeEach(() => {

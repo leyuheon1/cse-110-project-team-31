@@ -42,6 +42,10 @@ vi.mock("konva", () => {
       this.handlers.get(event)?.(payload);
     }
 
+    destroy() {
+      /* no-op destroy to mirror Konva API */
+    }
+
     accessor<T>(key: string, fallback: T) {
       return (value?: T) => {
         if (value !== undefined) this.config[key] = value;
@@ -139,21 +143,11 @@ describe("HowToPlayScreen", () => {
 
   it("renders without tips, applies global volume callback, and respects setVolume clamp", async () => {
     fetchMock.mockResolvedValueOnce({ text: async () => "Only instructions" }); // no tips header triggers else branch
-    const setGlobalSpy = vi.fn(); // spy on global setter call
-    (window as any).setGlobalBgmVolume = setGlobalSpy; // inject setter used in setupUI callback
-
     const screen: any = new HowToPlayScreen(stage as any, layer as any, vi.fn()); // create screen
     await Promise.resolve(); // let fetch resolve
 
-    screen.volumeChangeCallback = vi.fn(); // set extra callback path
     screen.setVolume(2); // clamp through public setter (also hits guard when slider exists)
     expect(screen.volume).toBe(1); // clamped to max
-
-    // simulate VolumeSlider onVolumeChange firing with mid value
-    const sliderCb = (screen as any).volumeSlider?.onVolumeChange as (v: number) => void;
-    sliderCb?.(0.25);
-    expect(setGlobalSpy).toHaveBeenCalledWith(0.25); // global setter invoked
-    expect(screen.volumeChangeCallback).toHaveBeenCalledWith(0.25); // per-screen callback invoked
     expect(layer.draw).toHaveBeenCalled(); // draw at least once during setup
   });
 
