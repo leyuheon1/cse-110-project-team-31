@@ -270,6 +270,13 @@ export class InfoButton {
             );
         }
         );
+
+        // Center the volume slider at bottom of modal
+        this.volumeSlider.setPosition(
+        modalX + (modalWidth - this.volumeSlider.getWidth()) / 2,
+        modalY + modalHeight - 70
+        );
+
         modalLayer.draw();
     }
 }

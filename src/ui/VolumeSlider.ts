@@ -32,7 +32,9 @@ export class VolumeSlider {
       y: this.knobRadius - this.sliderHeight / 2,
       width: this.sliderWidth,
       height: this.sliderHeight,
-      fill: '#ccc',
+      fill: '#fcd200ff',
+      stroke: '#7A321B',
+      strokeWidth: 1.5,
       cornerRadius: this.sliderHeight / 2,
     });
 
@@ -44,9 +46,9 @@ export class VolumeSlider {
       x: knobX,
       y: knobY,
       radius: this.knobRadius,
-      fill: '#ffffff',
-      stroke: '#000',
-      strokeWidth: 1,
+      fill: '#fcd200ff',
+      stroke: '#7A321B',
+      strokeWidth: 1.5,
       draggable: true,
     });
 
@@ -86,8 +88,31 @@ export class VolumeSlider {
       y: this.knobRadius * 2 + 4,
       text: 'Audio Volume',
       fontSize: 14,
-      fontFamily: 'Arial',
+      fontFamily: 'Nunito',
+      fill: '#7A321B',
+      strokeWidth: 1,
     });
+
+    label.offsetX(label.width() / 2 - 83); //center label
+
+    // add volume icon
+    const imgObj = new Image();
+    imgObj.src = "./public/volumeIcon.png";
+    imgObj.onload = () => {
+      // Adjust size as needed
+      const iconWidth = 60;
+      const iconHeight = 60;
+
+      const icon = new Konva.Image({
+        image: imgObj,
+        width: iconWidth,
+        height: iconHeight,
+        x: - iconWidth + 7,
+        y: this.knobRadius - (iconHeight / 2) + 2,
+        listening: false, // so it doesn't block mouse events
+      });
+      this.group.add(icon);
+    };
 
     this.group.add(this.track);
     this.group.add(this.knob);
@@ -105,6 +130,16 @@ export class VolumeSlider {
     const vol = Math.max(0, Math.min(1, v));
     const x = vol * this.sliderWidth;
     this.knob.x(x);
+    this.layer.batchDraw();
+  }
+
+  //helper functions to get size and set position of slider for layout adjustments (used in InfoButton)
+  public getWidth(): number {
+    return this.sliderWidth;
+  }
+
+  public setPosition(x: number, y: number): void {
+    this.group.position({ x, y });
     this.layer.batchDraw();
   }
 }
