@@ -1,36 +1,134 @@
-# .github/workflows/ci.yml
+################################################################################
+# CI/CD WORKFLOW: Automated Testing Pipeline
+# File: .github/workflows/ci.yml
+#
+# PURPOSE:
+# This GitHub Actions workflow automatically runs tests whenever code is pushed
+# to the main branch. It ensures that all changes pass tests before being merged,
+# maintaining code quality and preventing broken code from entering production.
+#
+# WHEN IT RUNS:
+# 1. Automatically: Every time someone pushes commits to the 'main' branch
+# 2. Manually: Can be triggered manually from the GitHub Actions tab
+#
+# WHAT IT DOES:
+# 1. Spins up a fresh Ubuntu Linux virtual machine (VM)
+# 2. Downloads the latest code from the repository
+# 3. Installs Node.js version 20
+# 4. Installs all project dependencies (npm packages)
+# 5. Runs the complete test suite
+# 6. Reports success (✅) or failure (❌) on GitHub
+#
+# HOW TO VIEW RESULTS:
+# - Go to your GitHub repository
+# - Click the "Actions" tab at the top
+# - Click on any workflow run to see detailed logs
+# - Green checkmark = all tests passed
+# - Red X = some tests failed (click to see which ones)
+#
+# COST: FREE for public repositories (GitHub provides free CI/CD minutes)
+################################################################################
 
+# Display name for this workflow (shown in GitHub Actions tab)
 name: Run Trivial Tests
 
+# TRIGGER CONDITIONS: When should this workflow run?
 on:
-  # 1. Run automatically on new push events to the main branch
+  # Trigger 1: AUTOMATIC - Run on every push to main branch
+  # Example: When you run "git push origin main"
   push:
-    branches: [ "main" ]
-  
-  # 2. Allow running this workflow manually from the Actions tab
+    branches: [ "main" ]  # Only trigger for pushes to the main branch
+
+  # Trigger 2: MANUAL - Allow developers to manually run this workflow
+  # How: Go to Actions tab → Select workflow → Click "Run workflow" button
   workflow_dispatch:
 
+# JOBS: The actual work to be performed
 jobs:
-  # Job to build and run the tests
+  # Job name: "build-and-test" (you can have multiple jobs)
   build-and-test:
-    # Use the latest stable version of Ubuntu
+    # RUNNER: What operating system to use?
+    # runs-on: ubuntu-latest means use the latest Ubuntu Linux VM
+    # Other options: windows-latest, macos-latest
     runs-on: ubuntu-latest
 
+    # STEPS: Sequential tasks to execute (run in order, top to bottom)
     steps:
-      # Step 1: Check out your repository's code
+      # ────────────────────────────────────────────────────────────────
+      # STEP 1: Download Repository Code
+      # ────────────────────────────────────────────────────────────────
+      # This step checks out (downloads) your repository's code
+      # so the workflow can access and test it
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4  # Official GitHub action to clone repo
+        # What it does: git clone <your-repo> into the VM
+        # Version @v4 is the latest stable version
 
-      # Step 2: Set up the Node.js environment
+      # ────────────────────────────────────────────────────────────────
+      # STEP 2: Install Node.js
+      # ────────────────────────────────────────────────────────────────
+      # Install Node.js runtime so we can run npm commands
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4  # Official GitHub action for Node.js
         with:
-          node-version: '20' # Use Node.js version 20
+          node-version: '20'  # Use Node.js version 20 (LTS - Long Term Support)
+        # Why version 20? It's stable, widely supported, and matches our dev environment
+        # This ensures consistency between local dev and CI environment
 
-      # Step 3: Install all project dependencies
+      # ────────────────────────────────────────────────────────────────
+      # STEP 3: Install Project Dependencies
+      # ────────────────────────────────────────────────────────────────
+      # Install all npm packages listed in package.json
       - name: Install dependencies
         run: npm install
+        # What it does:
+        # - Reads package.json to find all dependencies
+        # - Downloads and installs packages into node_modules/
+        # - Installs: Konva.js, Vitest, TypeScript, Vite, etc.
+        # Equivalent to running "npm install" on your local machine
 
-      # Step 4: Run the test script from package.json
+      # ────────────────────────────────────────────────────────────────
+      # STEP 4: Run Tests
+      # ────────────────────────────────────────────────────────────────
+      # Execute the test suite using Vitest
       - name: Run tests
         run: npm test
+        # What it does:
+        # - Runs the "test" script from package.json
+        # - Executes: "vitest run" (runs all *.test.ts files)
+        # - Tests all components: GameManager, screens, minigames, etc.
+        # - If ANY test fails, this step fails and workflow shows ❌
+        # - If ALL tests pass, workflow shows ✅
+        #
+        # Output: Terminal shows which tests passed/failed
+        # Example:
+        #   ✓ src/AnimationPlayer.test.ts (8 tests)
+        #   ✓ src/BakingMinigame.test.ts (12 tests)
+        #   ...
+        #   Test Files  24 passed (24)
+        #        Tests  156 passed (156)
+
+################################################################################
+# WHAT HAPPENS AFTER:
+# ✅ If all tests pass: Workflow completes successfully
+#    - Green checkmark appears on GitHub commit
+#    - Safe to merge pull requests
+#
+# ❌ If any test fails: Workflow fails
+#    - Red X appears on GitHub commit
+#    - Prevents merging until fixed
+#    - Click on failed run to see error details
+#
+# BENEFITS:
+# - Catches bugs before they reach main branch
+# - Ensures all team members' code passes tests
+# - Maintains code quality automatically
+# - Provides confidence when merging changes
+#
+# TO EXPLAIN TO TA:
+# "This CI/CD pipeline automatically runs our test suite every time code is
+# pushed to main. It uses GitHub Actions to spin up a Ubuntu VM, install
+# dependencies, and run all tests. If tests pass, we get a green checkmark.
+# If any fail, we get a red X and must fix them before merging. This ensures
+# our codebase always works and prevents broken code from being deployed."
+################################################################################

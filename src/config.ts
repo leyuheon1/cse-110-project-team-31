@@ -1,11 +1,46 @@
+/**
+ * config.ts - Game Configuration Management
+ *
+ * This file implements the ConfigManager class using the Singleton pattern.
+ * It handles loading and managing all game configuration parameters.
+ *
+ * PURPOSE:
+ * Allow game designers to tweak game balance (prices, timers, thresholds)
+ * without modifying code. Configuration is loaded from debug_mode.txt.
+ *
+ * SINGLETON PATTERN:
+ * Only one ConfigManager instance can exist. This ensures all parts of the
+ * game use the same configuration values.
+ *
+ * USAGE:
+ * const config = ConfigManager.getInstance().getConfig();
+ * const startingMoney = config.startingFunds;  // e.g., $500
+ */
+
 import { GameConfig } from './types';
 
+/**
+ * ConfigManager Class (Singleton)
+ *
+ * Manages all game configuration parameters. Uses singleton pattern
+ * to ensure only one configuration exists throughout the application.
+ */
 export class ConfigManager {
+    // Static instance variable for singleton pattern
     private static instance: ConfigManager;
+
+    // The actual configuration data
     private config: GameConfig;
 
+    /**
+     * Private constructor (Singleton Pattern)
+     *
+     * Private to prevent external instantiation. Use getInstance() instead.
+     * Initializes all configuration values to their defaults.
+     */
     private constructor() {
-        // Default values
+        // Default configuration values
+        // These are used if debug_mode.txt can't be loaded
         this.config = {
             startingFunds: 500,
             winThreshold: 1000, //change from 2000 to 1000
