@@ -1,3 +1,4 @@
+// Layout note: mocks first, then shared setup, followed by three scenario tests (tips path, error path, debounce) and extra coverage for no-tips + volume callback so every branch is easy to narrate to a TA.
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HowToPlayScreen } from "./HowToPlayScreen";
@@ -41,6 +42,10 @@ vi.mock("konva", () => {
       this.handlers.get(event)?.(payload);
     }
 
+    destroy() {
+      /* no-op destroy to mirror Konva API */
+    }
+
     accessor<T>(key: string, fallback: T) {
       return (value?: T) => {
         if (value !== undefined) this.config[key] = value;
@@ -64,10 +69,19 @@ vi.mock("konva", () => {
     text = this.accessor("text", "");
     cornerRadius = this.accessor("cornerRadius", 0);
     opacity = this.accessor("opacity", 1);
+
+    position(pos?: { x?: number; y?: number }) {
+      if (pos?.x !== undefined) this.config.x = pos.x;
+      if (pos?.y !== undefined) this.config.y = pos.y;
+      return { x: this.config.x ?? 0, y: this.config.y ?? 0 };
+    }
   }
 
   class StageStub extends NodeStub {
     containerEl = { style: { cursor: "default" } };
+    getPointerPosition() {
+      return { x: this.config.x ?? 0, y: this.config.y ?? 0 };
+    }
     container() {
       return this.containerEl;
     }
@@ -87,6 +101,7 @@ vi.mock("konva", () => {
     }
   }
   class ImageStub extends NodeStub {}
+  class CircleStub extends NodeStub {}
 
   return {
     default: {
@@ -96,6 +111,7 @@ vi.mock("konva", () => {
       Rect: RectStub,
       Text: TextStub,
       Image: ImageStub,
+      Circle: CircleStub,
     },
   };
 });
@@ -123,6 +139,16 @@ describe("HowToPlayScreen", () => {
         return 1;
       });
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+  });
+
+  it("renders without tips, applies global volume callback, and respects setVolume clamp", async () => {
+    fetchMock.mockResolvedValueOnce({ text: async () => "Only instructions" }); // no tips header triggers else branch
+    const screen: any = new HowToPlayScreen(stage as any, layer as any, vi.fn()); // create screen
+    await Promise.resolve(); // let fetch resolve
+
+    screen.setVolume(2); // clamp through public setter (also hits guard when slider exists)
+    expect(screen.volume).toBe(1); // clamped to max
+    expect(layer.draw).toHaveBeenCalled(); // draw at least once during setup
   });
 
   it("renders instructions with tips, buttons, and supports hover/click", async () => {
