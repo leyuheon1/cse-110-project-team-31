@@ -67,3 +67,44 @@ npm install
 npm run dev
 ```
 
+---
+
+## Deployment to GitHub Pages
+
+This project is configured for automatic deployment to GitHub Pages using GitHub Actions.
+
+### Automatic Deployment (Recommended)
+
+1. **Enable GitHub Pages in your repository:**
+   - Go to your repository on GitHub
+   - Navigate to **Settings** → **Pages**
+   - Under **Source**, select **GitHub Actions**
+
+2. **Push to main/master branch:**
+   - The workflow will automatically build and deploy when you push to `main` or `master`
+   - You can also manually trigger it from the **Actions** tab → **Deploy to GitHub Pages** → **Run workflow**
+
+3. **Configure the base path (if needed):**
+   - If deploying to a **project page** (e.g., `username.github.io/repository-name`), the base path is already set to `/cse-110-project-team-31/` in `.github/workflows/deploy.yml`
+   - If deploying to a **user/organization page** (e.g., `username.github.io`), change `BASE_PATH: /cse-110-project-team-31/` to `BASE_PATH: /` in the workflow file
+
+### Manual Deployment
+
+If you prefer to deploy manually:
+
+```bash
+# Build the project
+npm run build
+
+# The dist/ folder contains the built files
+# You can deploy this folder to GitHub Pages using gh-pages or other methods
+```
+
+### Accessing Your Deployed Site
+
+After deployment, your site will be available at:
+- **Project page:** `https://[username].github.io/cse-110-project-team-31/`
+- **User/Org page:** `https://[username].github.io/`
+
+---
+
