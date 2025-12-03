@@ -116,7 +116,7 @@ describe("VolumeSlider", () => {
   it("initializes knob position and clamps setVolume", async () => {
     const changeSpy = vi.fn(); // observe callback invocations
     const Konva = (await import("konva")).default as any; // pull in the mocked Konva
-    const { VolumeSlider } = await import("./Volumeslider"); // import target after mocks
+    const { VolumeSlider } = await import("./VolumeSlider"); // import target after mocks
     const stage = new Konva.Stage({ width: 400, height: 300 }); // stage with deterministic size
     const layer = new Konva.Layer(); // layer spy container
 
@@ -132,7 +132,7 @@ describe("VolumeSlider", () => {
   it("maps drag movement to clamped volume and redraws", async () => {
     const changeSpy = vi.fn(); // callback spy for drag updates
     const Konva = (await import("konva")).default as any; // mocked Konva access
-    const { VolumeSlider } = await import("./Volumeslider"); // import target after mocks
+    const { VolumeSlider } = await import("./VolumeSlider"); // import target after mocks
     const stage = new Konva.Stage({ width: 500, height: 300 }); // stage drives position math
     const layer = new Konva.Layer(); // layer with spyable batchDraw
 
@@ -153,7 +153,7 @@ describe("VolumeSlider", () => {
   it("moves knob on track click using pointer position and calls callback", async () => {
     const changeSpy = vi.fn(); // observe click volume change
     const Konva = (await import("konva")).default as any; // load mocked Konva
-    const { VolumeSlider } = await import("./Volumeslider"); // import target after mocks
+    const { VolumeSlider } = await import("./VolumeSlider"); // import target after mocks
     const stage = new Konva.Stage({ width: 320, height: 200 }); // compact stage for simple math
     const layer = new Konva.Layer(); // layer spy
 

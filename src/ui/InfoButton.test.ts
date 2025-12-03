@@ -5,7 +5,7 @@
 // - Every line is documented so you can explain the reasoning for each step to the TA.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"; // Vitest helpers supply assertions, spies, and lifecycle hooks.
 import { InfoButton } from "./InfoButton"; // Subject under test for coverage improvements.
-import { VolumeSlider } from "./Volumeslider"; // Import type so TypeScript is satisfied even when mocked.
+import { VolumeSlider } from "./VolumeSlider"; // Import type so TypeScript is satisfied even when mocked.
 
 class FakeStage { // Minimal Konva stage replacement for sizing and cursor checks.
   private readonly widthValue: number; // Store requested width for deterministic width() responses.
@@ -381,7 +381,7 @@ const volumeState = vi.hoisted(() => ({ // Shared VolumeSlider spies to drive ca
   lastCallback: null as null | ((v: number) => void), // Store last callback so tests can invoke it.
   lastSetVolume: vi.fn(), // Spy on VolumeSlider.setVolume calls.
 }));
-vi.mock("./Volumeslider", () => ({ // Mock VolumeSlider to avoid DOM and expose callback.
+vi.mock("./VolumeSlider", () => ({ // Mock VolumeSlider to avoid DOM and expose callback.
   VolumeSlider: class { // Minimal proxy matching the constructor and setVolume API.
     private width = 160;
     constructor(_stage: any, _layer: any, _initial: number, cb: (v: number) => void) { // Capture callback when instantiated.
