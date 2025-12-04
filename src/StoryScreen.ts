@@ -1,6 +1,7 @@
 import Konva from "konva";
 import { ConfigManager } from "./config"; // Import ConfigManager
 import { VolumeButton } from './ui/VolumeButton';
+import { getAssetPath } from "./utils";
 
 export class StoryScreen {
   private stage: Konva.Stage;
@@ -57,7 +58,7 @@ export class StoryScreen {
 
     const cursorDefault = "default";
     const cursorPointer = "pointer";
-    const bgSrc = "/Storyline.png";
+    const bgSrc = getAssetPath('Storyline.png');
 
 
     const getGlobalBgmVolume = (window as any).getGlobalBgmVolume;

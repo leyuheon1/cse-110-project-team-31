@@ -1,5 +1,6 @@
 import Konva from "konva";
 import { ConfigManager } from '../config';
+import { getAssetPath } from '../utils';
 
 //Display progress bar to show player how close they are to reaching the win threshold
 export class SavingsTracker {
@@ -104,7 +105,7 @@ export class SavingsTracker {
 
         //load cookie image and add bounce animation
         const img = new window.Image();
-        img.src = "/cookie.png";
+        img.src = getAssetPath('cookie.png');
         img.onload = () => {
             this.cookieIcon.image(img);
             this.layer.batchDraw();

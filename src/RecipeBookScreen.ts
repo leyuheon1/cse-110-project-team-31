@@ -1,5 +1,6 @@
 import Konva from 'konva';
 import { ExitButton } from './ui/ExitButton'; 
+import { getAssetPath } from './utils';
 
 export class RecipeBookScreen {
     private layer: Konva.Layer;
@@ -176,7 +177,7 @@ export class RecipeBookScreen {
 
         this.exitButtonInstance = new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
-            window.location.href = '/login.hmtl';
+            window.location.href = getAssetPath('login.hmtl');
         });
 
         this.layer.draw();

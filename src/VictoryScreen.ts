@@ -1,4 +1,5 @@
 import Konva from "konva";
+import { getAssetPath } from "./utils";
 
 
 interface VictoryScreenOptions {
@@ -54,7 +55,7 @@ export class VictoryScreen {
       
       this.layer.draw();
     };
-    imageObj.src = "/victory-background.png";
+    imageObj.src = getAssetPath('victory-background.png');
 
     const victoryMessage = new Konva.Text({
       x: 0,

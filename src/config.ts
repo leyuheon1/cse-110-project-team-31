@@ -1,4 +1,5 @@
 import { GameConfig } from './types';
+import { getAssetPath } from './utils';
 
 export class ConfigManager {
     private static instance: ConfigManager;
@@ -30,7 +31,7 @@ export class ConfigManager {
 
     public async loadConfig(): Promise<void> {
         try {
-            const response = await fetch('/debug_mode.txt');
+            const response = await fetch(getAssetPath('debug_mode.txt'));
             const text = await response.text();
             this.parseConfig(text);
             console.log('Config loaded:', this.config);

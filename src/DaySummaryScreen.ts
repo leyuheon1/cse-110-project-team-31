@@ -81,7 +81,7 @@ export class DaySummaryScreen {
         // Exit Button
         new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
-            window.location.href = '/login.html';
+            window.location.href = getAssetPath('login.html');
         });
 
         // Info Button
@@ -293,7 +293,7 @@ export class DaySummaryScreen {
         //Exit Button
         const exitButton = new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
-            window.location.href = '/login.html'; //go to login page
+            window.location.href = getAssetPath('login.html'); //go to login page
         });
 
         //Info Button

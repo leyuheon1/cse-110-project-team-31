@@ -1,6 +1,7 @@
 import Konva from 'konva';
 import { ExitButton } from './ui/ExitButton';
 import { VolumeButton } from './ui/VolumeButton';
+import { getAssetPath } from './utils';
 
 
 export class HowToPlayScreen {
@@ -134,7 +135,7 @@ export class HowToPlayScreen {
         
         new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
-            window.location.href = '/login.html';
+            window.location.href = getAssetPath('login.html');
         });
 
         this.layer.draw();
@@ -148,7 +149,7 @@ export class HowToPlayScreen {
         renderId: number
     ): Promise<void> {
         try {
-            const response = await fetch('/howtoplay.txt');
+            const response = await fetch(getAssetPath('howtoplay.txt'));
             
             if (!this.isActive || this.currentRenderId !== renderId) return;
 

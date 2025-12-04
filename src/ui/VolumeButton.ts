@@ -1,5 +1,6 @@
 import Konva from 'konva';
 import { VolumeSlider } from './VolumeSlider';
+import { getAssetPath } from '../utils';
 
 export class VolumeButton {
   private group: Konva.Group;
@@ -40,7 +41,7 @@ export class VolumeButton {
 
     // Load volume icon image
     const imgObj = new Image();
-    imgObj.src = './public/volumeIcon.png';
+    imgObj.src = getAssetPath('volumeIcon.png');
     imgObj.onload = () => {
       const iconSize = buttonRadius * 2.5;
       const icon = new Konva.Image({

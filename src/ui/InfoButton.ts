@@ -1,5 +1,6 @@
 import Konva from "konva";
 import { VolumeSlider } from './VolumeSlider';
+import { getAssetPath } from '../utils';
 
 
 export class InfoButton {
@@ -95,7 +96,7 @@ export class InfoButton {
             instructions = this.customText;
         } else {
             try {
-                const response = await fetch("/howtoplaypopup.txt");
+                const response = await fetch(getAssetPath('howtoplaypopup.txt'));
                 instructions = await response.text();
             } catch (error) {
                 instructions = "Instructions could not be loaded.";

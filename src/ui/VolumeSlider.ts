@@ -1,4 +1,5 @@
 import Konva from 'konva';
+import { getAssetPath } from '../utils';
 
 export class VolumeSlider {
   private group: Konva.Group;
@@ -97,7 +98,7 @@ export class VolumeSlider {
 
     // add volume icon
     const imgObj = new Image();
-    imgObj.src = "./public/volumeIcon.png";
+    imgObj.src = getAssetPath('volumeIcon.png');
     imgObj.onload = () => {
       // Adjust size as needed
       const iconWidth = 60;

@@ -197,7 +197,7 @@ export class BakingMinigame {
 
         new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
-            window.location.href = '/login.hmtl';
+            window.location.href = getAssetPath('login.hmtl');
         });
 
         // --- UPDATED: Info text ---

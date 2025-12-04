@@ -1,4 +1,5 @@
 import Konva from "konva";
+import { getAssetPath } from "./utils";
 
 interface LoseScreenOptions {
   cashBalance: number;
@@ -39,7 +40,7 @@ export class LoseScreen {
       bg.moveToBottom();
       this.layer.draw();
     };
-    imageObj.src = "/lose-background.png";
+    imageObj.src = getAssetPath('lose-background.png');
 
     const loseMessage = new Konva.Text({
       x: 0,

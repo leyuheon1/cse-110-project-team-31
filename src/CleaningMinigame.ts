@@ -4,6 +4,7 @@ import { ConfigManager } from './config';
 import { ExitButton } from './ui/ExitButton'; 
 import { InfoButton } from './ui/InfoButton';
 import { ShuffleButton } from './ui/ShuffleButton';
+import { getAssetPath } from './utils';
 
 interface Mistake {
     question: string;
@@ -345,7 +346,7 @@ export class CleaningMinigame {
 
         new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
-            window.location.href = '/login.html'; 
+            window.location.href = getAssetPath('login.html'); 
         });
 
         new InfoButton(

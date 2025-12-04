@@ -112,7 +112,7 @@ export class ShoppingScreen {
     const stageHeight = this.stage.height();
 
     const backgroundImage = new Image();
-    backgroundImage.src = "./Shopping.png";
+    backgroundImage.src = getAssetPath('Shopping.png');
     backgroundImage.onload = () => {
       if (this.currentRenderId !== myRenderId) return;
 
@@ -147,7 +147,7 @@ export class ShoppingScreen {
         console.warn("Failed to load price-tag.png. Using Konva.Rect fallback.");
         callback(); 
     };
-    this.priceTagImageObj.src = "/price-tag.png";
+    this.priceTagImageObj.src = getAssetPath('price-tag.png');
   }
 
   private createIngredientNameText(stageWidth: number, y: number, name: string, center_X: number): void {
@@ -193,7 +193,7 @@ export class ShoppingScreen {
 
     new ExitButton(this.stage, this.layer, () => {
       this.cleanup();
-      window.location.href = "/login.html";
+      window.location.href = getAssetPath('login.html');
     });
     new InfoButton(this.stage, this.layer);
   }

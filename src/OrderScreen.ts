@@ -47,7 +47,7 @@ export class OrderScreen {
         // Exit & Info buttons
         new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
-            window.location.href = '/login.html';
+            window.location.href = getAssetPath('login.html');
         });
         new InfoButton(this.stage, this.layer);
         
